@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dipelnet — Guia Interno</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<!-- Cloudinary Upload Widget -->
+<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+<script>
+  // ⚠️ Nunca commitar estas chaves no GitHub. Use .env no projeto React.
+  const CLOUDINARY_CLOUD_NAME = 'seu-cloud-name'; // substitua pelo cloud name da sua conta Cloudinary
+  const CLOUDINARY_API_KEY    = '754394543815596';
+  const CLOUDINARY_PRESET     = 'dipelnet_unsigned'; // crie um Upload Preset "unsigned" no painel Cloudinary
+  const MAPS_KEY              = 'AIzaSyBydCQdOJrFYnSdfbMJeWaNbJwai9gwztI';
+</script>
+<style>
+:root{
+  --blue:#1a56db;--blue-d:#1142a8;--blue-l:#e8f0fe;
+  --sidebar:#0f172a;--sidebar-h:rgba(255,255,255,.06);--sidebar-a:rgba(26,86,219,.22);
+  --text:#111827;--text-m:#6b7280;--text-l:#9ca3af;
+  --border:#e5e7eb;--bg:#f1f5f9;--surface:#ffffff;
+  --green:#059669;--green-l:#d1fae5;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --red:#dc2626;--red-l:#fee2e2;
+  --purple:#7c3aed;--purple-l:#ede9fe;
+  --teal:#0891b2;--teal-l:#e0f2fe;
+  --r:10px;--sh:0 1px 3px rgba(0,0,0,.07);--sh-md:0 4px 16px rgba(0,0,0,.08);
+}
+[data-theme="dark"]{
+  --text:#f1f5f9;--text-m:#94a3b8;--text-l:#64748b;
+  --border:#1e293b;--bg:#0b1120;--surface:#111827;
+  --blue-l:rgba(26,86,219,.18);--green-l:rgba(5,150,105,.18);
+  --amber-l:rgba(217,119,6,.18);--red-l:rgba(220,38,38,.18);
+  --purple-l:rgba(124,58,237,.18);--teal-l:rgba(8,145,178,.18);
+  --sidebar:#070d1a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;transition:background .2s,color .2s}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:10px}
+
+/* SIDEBAR */
+.sidebar{width:256px;background:var(--sidebar);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;overflow-y:auto;transition:transform .25s}
+.sidebar-logo{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.logo-icon{width:34px;height:34px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.logo-name{font-size:15px;font-weight:700;color:#fff}
+.logo-tag{font-size:10px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase}
+.nav{padding:8px 0;flex:1}
+.nav-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:12px 16px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;border-left:3px solid transparent;transition:all .15s;user-select:none;text-decoration:none}
+.nav-item:hover{background:var(--sidebar-h);color:rgba(255,255,255,.9)}
+.nav-item.active{background:var(--sidebar-a);color:#fff;border-left-color:var(--blue);font-weight:500}
+.nav-item svg{flex-shrink:0;width:15px;height:15px}
+.sidebar-bottom{padding:12px 16px;border-top:1px solid rgba(255,255,255,.07)}
+.dark-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.05);cursor:pointer;margin-bottom:8px}
+.dark-toggle-label{font-size:12px;color:rgba(255,255,255,.45);display:flex;align-items:center;gap:7px}
+.toggle{width:32px;height:18px;background:rgba(255,255,255,.15);border-radius:9px;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--blue)}
+.toggle::after{content:'';width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:16px}
+.sidebar-ver{font-size:10px;color:rgba(255,255,255,.2);text-align:center}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
+
+/* MAIN */
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left h1{font-size:18px;font-weight:600;line-height:1.2}
+.topbar-left p{font-size:12px;color:var(--text-m);margin-top:1px}
+.topbar-right{display:flex;gap:8px;align-items:center}
+.hamburger{display:none;background:none;border:none;cursor:pointer;color:var(--text);padding:4px}
+.content{padding:22px 24px;flex:1}
+.section{display:none}.section.active{display:block}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.card-hdr{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:14px;font-weight:600}.cs{font-size:12px;color:var(--text-m);margin-top:1px}
+.card-body{padding:18px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-d)}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}.btn-outline:hover{background:var(--bg)}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-success{background:var(--green);color:#fff}
+.btn-amber{background:var(--amber);color:#fff}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500}
+.bg{background:var(--green-l);color:#065f46}.ba{background:var(--amber-l);color:#92400e}
+.br{background:var(--red-l);color:#991b1b}.bb{background:var(--blue-l);color:#1e40af}
+.bp{background:var(--purple-l);color:#5b21b6}.bt{background:var(--teal-l);color:#0e7490}
+.bgr{background:var(--border);color:var(--text-m)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dg{background:var(--green)}.da{background:var(--amber)}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+.stat-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.stat-lbl{font-size:11px;color:var(--text-m);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-val{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}
+.stat-meta{font-size:11px;color:var(--text-m)}
+
+/* ALERTS */
+.alert{display:flex;gap:9px;padding:11px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;line-height:1.5;align-items:flex-start}
+.alert svg{flex-shrink:0;margin-top:1px}
+.ai{background:var(--blue-l);color:#1e40af}.aw{background:var(--amber-l);color:#92400e}
+.ar{background:var(--red-l);color:#991b1b}.as{background:var(--green-l);color:#065f46}
+
+/* GUIDE */
+.guia-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:box-shadow .15s,border-color .15s;box-shadow:var(--sh);margin-bottom:10px}
+.guia-item:hover{border-color:#93c5fd;box-shadow:var(--sh-md)}
+.guia-ico{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* STEP */
+.step-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.step-item:last-child{border-bottom:none}
+.step-num{width:30px;height:30px;border-radius:50%;background:var(--blue-l);color:var(--blue);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
+.step-title{font-size:13px;font-weight:600;margin-bottom:5px}
+.step-desc{font-size:13px;color:var(--text-m);line-height:1.6}
+.step-tip{display:flex;gap:8px;background:var(--amber-l);color:#92400e;border-radius:8px;padding:9px 12px;font-size:12px;margin-top:8px;line-height:1.5}
+
+/* IMAGE SLOT */
+.img-slot{margin-top:10px;border-radius:8px;border:1px solid var(--border);overflow:hidden;position:relative}
+.img-slot img{width:100%;display:block;max-height:300px;object-fit:contain;background:#111827}
+.img-empty{background:var(--bg);padding:20px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;min-height:100px}
+.img-empty-text{font-size:12px;color:var(--text-l);text-align:center}
+.img-upload-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;background:var(--blue);color:#fff;font-size:12px;font-weight:500;cursor:pointer;border:none;font-family:inherit;margin-top:4px;transition:background .15s}
+.img-upload-btn:hover{background:var(--blue-d)}
+.img-remove-btn{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+
+/* EQUIP */
+.equip-table{width:100%;border-collapse:collapse}
+.equip-table th{padding:9px 14px;font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);text-align:left;white-space:nowrap}
+.equip-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.equip-table tr:last-child td{border-bottom:none}
+.equip-table tr:hover td{background:var(--bg)}
+.wifi6{background:var(--green-l);color:#065f46;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.wifi5{background:var(--amber-l);color:#92400e;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.mega-bar{height:6px;border-radius:3px;background:var(--border);overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-left:6px}
+.mega-fill{height:100%;border-radius:3px;background:var(--blue)}
+
+/* TECNICO */
+.tec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.tec-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
+.av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.av-b{background:var(--blue-l);color:#1e40af}.av-g{background:var(--green-l);color:#065f46}.av-a{background:var(--amber-l);color:#92400e}
+.rt{font-size:11px;padding:2px 7px;background:var(--blue-l);color:#1e40af;border-radius:20px;font-weight:500;display:inline-block;margin:2px 2px 0 0}
+.tec-foot{font-size:11px;color:var(--text-m);display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);margin-top:8px}
+
+/* AVISO / SCRIPT */
+.aviso-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);margin-bottom:12px}
+.aviso-pin{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--red-l);color:#991b1b;font-weight:500}
+.script-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);margin-bottom:12px}
+.script-body{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.8;color:var(--text-m);white-space:pre-line;margin:10px 0;font-family:inherit}
+
+/* MAP */
+#map-container{height:480px;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--sh-md)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:14px;width:500px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .2s ease}
+@keyframes mIn{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+.modal-hdr{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--surface);position:sticky;top:0;z-index:1}
+.modal-title{font-size:15px;font-weight:600}
+.modal-close{width:26px;height:26px;border:none;background:transparent;cursor:pointer;border-radius:6px;font-size:18px;color:var(--text-m)}
+.modal-close:hover{background:var(--bg)}
+.modal-body{padding:18px 22px}
+.modal-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.lbl{display:block;font-size:11px;font-weight:600;color:var(--text-m);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.inp,.sel,.ta{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s}
+.inp:focus,.sel:focus,.ta:focus{border-color:#93c5fd;box-shadow:0 0 0 3px rgba(147,197,253,.25)}
+.ta{resize:vertical;min-height:70px}
+[data-theme="dark"] .inp,[data-theme="dark"] .sel,[data-theme="dark"] .ta{background:var(--bg)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);margin-bottom:14px}
+.search-bar input{border:none;outline:none;font-family:inherit;font-size:13px;flex:1;color:var(--text);background:transparent}
+
+/* BC */
+.bc{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-m);margin-bottom:14px}
+.bc span{cursor:pointer}.bc span:hover{color:var(--blue)}.bc .sep{color:var(--border)}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:9999;display:none;transition:opacity .2s;color:#fff}
+
+/* LAYOUT */
+.two-col{display:grid;grid-template-columns:1fr 300px;gap:18px}
+.mb16{margin-bottom:16px}.mb20{margin-bottom:20px}
+.hidden{display:none!important}
+
+/* SPIN */
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PRINT */
+@media print{.sidebar,.topbar,.no-print{display:none!important}.main{margin-left:0}}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}
+  .mob-overlay.open{display:block!important}.main{margin-left:0}
+  .hamburger{display:block!important}.stats-grid{grid-template-columns:1fr 1fr}
+  .two-col,.g2{grid-template-columns:1fr}
+}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr}.content{padding:14px}}
+</style>
+</head>
+<body>
+
+<div class="mob-overlay" id="mob-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">D</div>
+    <div><div class="logo-name">Dipelnet</div><div class="logo-tag">Guia Interno</div></div>
+  </div>
+  <nav class="nav">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" onclick="go('dashboard',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    </div>
+    <div class="nav-item" onclick="go('guias',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>Guias de Instrução
+    </div>
+    <div class="nav-item" onclick="go('equipamentos',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>Equipamentos
+    </div>
+    <div class="nav-item" onclick="go('tecnicos',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Técnicos
+    </div>
+    <div class="nav-item" onclick="go('mapa',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Mapa de Técnicos
+    </div>
+    <div class="nav-label">Comunicação</div>
+    <div class="nav-item" onclick="go('avisos',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>Avisos e Comunicados
+    </div>
+    <div class="nav-item" onclick="go('scripts',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z"/></svg>Scripts de Atendimento
+    </div>
+    <div class="nav-label">Admin</div>
+    <div class="nav-item" onclick="go('usuarios',this)">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Gerenciar Usuários
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="dark-toggle" onclick="toggleDark()">
+      <div class="dark-toggle-label">
+        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>Modo escuro
+      </div>
+      <div class="toggle" id="dark-toggle"></div>
+    </div>
+    <div class="sidebar-ver">v3.0 · Dipelnet 2025</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" onclick="openSidebar()">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-left">
+        <h1 id="pg-title">Dashboard</h1>
+        <p id="pg-sub">Visão geral do sistema</p>
+      </div>
+    </div>
+    <div class="topbar-right no-print">
+      <button class="btn btn-outline btn-sm" onclick="window.print()">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="section active" id="sec-dashboard">
+      <div class="stats-grid">
+        <div class="stat"><div class="stat-ico" style="background:var(--blue-l)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#1a56db" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div><div class="stat-lbl">Guias</div><div class="stat-val" style="color:var(--blue)">4</div><div class="stat-meta">Tutoriais disponíveis</div></div>
+        <div class="stat"><div class="stat-ico" style="background:var(--teal-l)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#0891b2" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18"/></svg></div><div class="stat-lbl">Equipamentos</div><div class="stat-val" style="color:var(--teal)">8</div><div class="stat-meta">Modelos catalogados</div></div>
+        <div class="stat"><div class="stat-ico" style="background:var(--green-l)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-lbl">Técnicos</div><div class="stat-val" style="color:var(--green)" id="dash-tec-count">1</div><div class="stat-meta">Cadastrados</div></div>
+        <div class="stat"><div class="stat-ico" style="background:var(--amber-l)"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="#d97706" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg></div><div class="stat-lbl">Regiões</div><div class="stat-val" style="color:var(--amber)">1</div><div class="stat-meta">Cascavel e região</div></div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="card mb16">
+            <div class="card-hdr"><div><div class="ct">Guias de Instrução</div><div class="cs">Acesso rápido</div></div><button class="btn btn-outline btn-sm" onclick="go('guias',document.querySelectorAll('.nav-item')[1])">Ver todos</button></div>
+            <div style="padding:10px 14px">
+              <div class="guia-item" onclick="openGuia('onu02b')" style="margin-bottom:8px"><div class="guia-ico" style="background:var(--blue-l)"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#1a56db" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Ativação 02B / AN5506</div><div style="font-size:12px;color:var(--text-m)">NE Manager — PPPoE com VLAN</div></div><span class="badge bb">11 etapas</span></div>
+              <div class="guia-item" onclick="openGuia('huawei')" style="margin-bottom:8px"><div class="guia-ico" style="background:var(--red-l)"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Ativação Huawei em Bridge</div><div style="font-size:12px;color:var(--text-m)">iManager U2000 — ONT Bridge</div></div><span class="badge br">7 etapas</span></div>
+              <div class="guia-item" onclick="openGuia('telefonia')" style="margin-bottom:8px"><div class="guia-ico" style="background:var(--green-l)"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:600">Configuração Telefonia VoIP</div><div style="font-size:12px;color:var(--text-m)">SIP — VLAN 240/20</div></div><span class="badge bg">6 etapas</span></div>
+              <div class="guia-item" onclick="openGuia('02bbridge')"><div class="guia-ico" style="background:var(--purple-l)"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#7c3aed" stroke-width="2"><path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div style="flex:1"><div style="font-size:13px;font-weight:600">02B / HG em Bridge</div><div style="font-size:12px;color:var(--text-m)">NE Manager — Port Service Config</div></div><span class="badge bp">4 etapas</span></div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb16">
+            <div class="card-hdr"><div class="ct">Aviso</div></div>
+            <div class="card-body" style="font-size:13px;color:var(--text-m);line-height:1.6">Bem-vindo ao sistema interno Dipelnet. Use o menu lateral para acessar os guias, equipamentos, técnicos e comunicados.</div>
+          </div>
+          <div class="card">
+            <div class="card-hdr"><div class="ct">Top Equipamentos</div></div>
+            <div style="padding:0">
+              <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between"><span style="font-weight:500">Huawei AX3 Pro</span><span class="badge bg">até 1 Giga</span></div>
+              <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between"><span style="font-weight:500">TP-Link AX53/55</span><span class="badge bg">até 1 Giga</span></div>
+              <div style="padding:10px 16px;font-size:13px;display:flex;justify-content:space-between"><span style="font-weight:500">Mercusys MR60X</span><span class="badge bg">até 1 Giga</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GUIAS -->
+    <div class="section" id="sec-guias">
+      <div id="guia-list-view">
+        <div class="search-bar"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#9ca3af" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Buscar guia..." oninput="filterGuias(this.value)"></div>
+        <div id="guia-list-cont">
+          <div class="guia-item" onclick="openGuia('onu02b')" data-tags="02b an5506 ne manager pppoe vlan ativação"><div class="guia-ico" style="background:var(--blue-l)"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1a56db" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18"/></svg></div><div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:3px">Ativação 02B / AN5506</div><div style="font-size:12px;color:var(--text-m);line-height:1.5">Autorização de ONU no NE Manager, configuração WAN Service PPPoE, senhas web e interface local</div><div style="display:flex;gap:8px;margin-top:7px"><span class="badge bb">11 etapas</span><span class="badge bt">NE Manager</span></div></div></div>
+          <div class="guia-item" onclick="openGuia('huawei')" data-tags="huawei bridge imanager u2000 vlan ont"><div class="guia-ico" style="background:var(--red-l)"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#dc2626" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:3px">Ativação Huawei em Bridge</div><div style="font-size:12px;color:var(--text-m);line-height:1.5">iManager U2000 — ONT em modo bridge com VAS Profile ONT-BRIDGE-2020</div><div style="display:flex;gap:8px;margin-top:7px"><span class="badge br">7 etapas</span><span class="badge bt">iManager U2000</span></div></div></div>
+          <div class="guia-item" onclick="openGuia('telefonia')" data-tags="telefonia voip sip pots vlan 240 20 huawei"><div class="guia-ico" style="background:var(--green-l)"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#059669" stroke-width="2"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></div><div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:3px">Configuração de Telefonia VoIP</div><div style="font-size:12px;color:var(--text-m);line-height:1.5">SIP na ONT Huawei — VLAN 240/20, servidor 187.49.80.21, porta POTS</div><div style="display:flex;gap:8px;margin-top:7px"><span class="badge bg">6 etapas</span><span class="badge bt">VoIP SIP</span></div></div></div>
+          <div class="guia-item" onclick="openGuia('02bbridge')" data-tags="02b hg bridge port service config vlan tag"><div class="guia-ico" style="background:var(--purple-l)"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#7c3aed" stroke-width="2"><path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div><div style="flex:1"><div style="font-size:14px;font-weight:600;margin-bottom:3px">02B / HG em Bridge</div><div style="font-size:12px;color:var(--text-m);line-height:1.5">NE Manager — Port Service Config, CVLAN Tag por porta LAN</div><div style="display:flex;gap:8px;margin-top:7px"><span class="badge bp">4 etapas</span><span class="badge bt">NE Manager</span></div></div></div>
+        </div>
+      </div>
+      <div id="guia-viewer" class="hidden">
+        <div class="bc"><span onclick="backGuias()">Guias</span><span class="sep">/</span><span id="gv-title" style="color:var(--text);font-weight:500"></span></div>
+        <div id="gv-content"></div>
+      </div>
+    </div>
+
+    <!-- EQUIPAMENTOS -->
+    <div class="section" id="sec-equipamentos">
+      <div class="alert ai mb16"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Consulte a tabela para indicar o equipamento correto conforme o plano do cliente.</div>
+      <div class="card"><div class="card-hdr"><div><div class="ct">Equipamentos Compatíveis</div><div class="cs">Modelos homologados e seus planos suportados</div></div></div>
+      <div style="overflow-x:auto"><table class="equip-table"><thead><tr><th>Marca</th><th>Modelo</th><th>Plano Suportado</th><th>Wi-Fi</th><th>Diferencial</th></tr></thead><tbody id="equip-tbody"></tbody></table></div></div>
+    </div>
+
+    <!-- TECNICOS -->
+    <div class="section" id="sec-tecnicos">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+        <button class="btn btn-primary btn-sm no-print" onclick="openModal('m-tec')">+ Novo Técnico</button>
+      </div>
+      <div class="tec-grid" id="tec-grid"></div>
+    </div>
+
+    <!-- MAPA -->
+    <div class="section" id="sec-mapa">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+        <div class="card"><div class="card-hdr"><div class="ct">Legenda</div></div><div class="card-body"><div style="display:flex;flex-direction:column;gap:9px;font-size:13px">
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:var(--green);border:2px solid #fff;box-shadow:0 0 0 1px var(--green)"></div>Disponível</div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:var(--amber);border:2px solid #fff;box-shadow:0 0 0 1px var(--amber)"></div>Em campo</div>
+          <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:50%;background:#9ca3af;border:2px solid #fff"></div>Folga</div>
+        </div></div></div>
+        <div class="card"><div class="card-hdr"><div class="ct">Cobertura</div></div><div class="card-body"><div style="display:flex;flex-direction:column;gap:7px;font-size:13px">
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-m)">Técnicos ativos</span><strong id="mapa-ativos">1</strong></div>
+          <div style="display:flex;justify-content:space-between"><span style="color:var(--text-m)">Cidade base</span><strong>Cascavel - PR</strong></div>
+        </div></div></div>
+      </div>
+      <div id="map-container">
+        <div style="height:480px;display:flex;align-items:center;justify-content:center;color:var(--text-m);font-size:13px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">Clique em Mapa de Técnicos para carregar</div>
+      </div>
+    </div>
+
+    <!-- AVISOS -->
+    <div class="section" id="sec-avisos">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn btn-primary btn-sm no-print" onclick="openModal('m-aviso')">+ Novo Aviso</button></div>
+      <div id="avisos-list">
+        <div class="aviso-card" style="border-left:3px solid var(--blue)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div style="font-size:14px;font-weight:600">Bem-vindo ao sistema Dipelnet <span class="aviso-pin">Fixado</span></div><span style="font-size:11px;color:var(--text-m)">Hoje</span></div>
+          <div style="font-size:13px;color:var(--text-m);line-height:1.6">Use o menu lateral para acessar guias, equipamentos, técnicos e mais. Em caso de dúvidas, consulte seu supervisor.</div>
+          <div style="font-size:11px;color:var(--text-l);margin-top:8px">Admin · Hoje</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <div class="section" id="sec-scripts">
+      <div class="alert ai mb16"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Adapte os scripts ao contexto do cliente quando necessário.</div>
+      <div class="script-card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;gap:8px"><span class="badge bg">Ativação</span>Boas-vindas após ativação</div>
+        <div class="script-body">Olá, [Nome]! 👋
+
+Seu serviço Dipelnet foi ativado com sucesso! ✅
+
+📶 Rede Wi-Fi: [NOME DA REDE]
+🔑 Senha: [SENHA]
+📞 Suporte: (45) 9 9999-9999
+🕐 Atendimento: Seg–Sex, 8h–18h
+
+Bem-vindo(a) à família Dipelnet! 🚀</div>
+        <button class="btn btn-outline btn-sm no-print" onclick="copiar(this)">Copiar</button>
+      </div>
+      <div class="script-card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;gap:8px"><span class="badge ba">Suporte</span>Abertura de chamado</div>
+        <div class="script-body">Olá, [Nome]! Aqui é da Dipelnet. 😊
+
+Recebemos seu contato sobre [PROBLEMA].
+
+Chamado registrado:
+📋 Número: #[NÚMERO]
+⏰ Previsão: até [PRAZO]
+
+Qualquer dúvida, é só chamar!</div>
+        <button class="btn btn-outline btn-sm no-print" onclick="copiar(this)">Copiar</button>
+      </div>
+      <div class="script-card">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;display:flex;gap:8px"><span class="badge bp">Cobrança</span>Lembrete de vencimento</div>
+        <div class="script-body">Olá, [Nome]! 👋
+
+Sua fatura Dipelnet vence em [DATA].
+
+💰 Valor: R$ [VALOR]
+🔗 Boleto: [LINK]
+
+Qualquer dúvida estamos aqui! 😊</div>
+        <button class="btn btn-outline btn-sm no-print" onclick="copiar(this)">Copiar</button>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="section" id="sec-usuarios">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px"><button class="btn btn-primary btn-sm no-print" onclick="openModal('m-user')">+ Novo Colaborador</button></div>
+      <div class="card"><div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="padding:9px 14px;font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);text-align:left">Nome</th>
+            <th style="padding:9px 14px;font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);text-align:left">E-mail</th>
+            <th style="padding:9px 14px;font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);text-align:left">Perfil</th>
+            <th style="padding:9px 14px;font-size:11px;font-weight:600;color:var(--text-m);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--bg);text-align:left">Ações</th>
+          </tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="m-tec">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="m-tec-title">Novo Técnico</span><button class="modal-close" onclick="closeModal('m-tec')">×</button></div>
+    <div class="modal-body">
+      <div class="g2"><div class="form-group"><label class="lbl">Nome completo</label><input class="inp" id="ti-nome" placeholder="Nome"></div><div class="form-group"><label class="lbl">Código</label><input class="inp" id="ti-cod" placeholder="Ex: T002"></div></div>
+      <div class="form-group"><label class="lbl">Endereço (para o mapa)</label><input class="inp" id="ti-end" placeholder="Rua, número, bairro, Cascavel - PR"></div>
+      <div class="form-group"><label class="lbl">Regiões de atuação (vírgula)</label><input class="inp" id="ti-regioes" placeholder="Morumbi, Cascavel Centro"></div>
+      <div class="form-group"><label class="lbl">Status</label><select class="sel" id="ti-status"><option>Disponível</option><option>Em campo</option><option>Folga</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-tec')">Cancelar</button><button class="btn btn-primary" onclick="salvarTec()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="m-aviso">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Novo Aviso</span><button class="modal-close" onclick="closeModal('m-aviso')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="lbl">Título</label><input class="inp" id="av-title" placeholder="Título do aviso"></div>
+      <div class="form-group"><label class="lbl">Mensagem</label><textarea class="ta" id="av-body" style="min-height:100px"></textarea></div>
+      <div class="form-group"><label class="lbl">Prioridade</label><select class="sel" id="av-prio"><option value="normal">Normal</option><option value="alta">Alta (fixar)</option></select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-aviso')">Cancelar</button><button class="btn btn-primary" onclick="salvarAviso()">Publicar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="m-user">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title">Novo Colaborador</span><button class="modal-close" onclick="closeModal('m-user')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="lbl">Nome completo</label><input class="inp" id="u-nome" placeholder="Nome"></div>
+      <div class="g2">
+        <div class="form-group"><label class="lbl">E-mail</label><input class="inp" id="u-email" type="email" placeholder="email@dipelnet.com.br"></div>
+        <div class="form-group"><label class="lbl">Perfil</label><select class="sel" id="u-role"><option>Colaborador</option><option>Técnico</option><option>Gestor</option><option>Admin</option></select></div>
+      </div>
+      <div class="form-group"><label class="lbl">Senha inicial</label><input class="inp" id="u-senha" type="password" placeholder="mínimo 6 caracteres"></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('m-user')">Cancelar</button><button class="btn btn-primary" onclick="salvarUser()">Criar</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════ DATA ══════════
+let tecnicos = [
+  {id:1, nome:'Bruno Guilherme Vieira', cod:'T001', regioes:['Morumbi','Cascavel'], status:'Disponível', lat:-24.928906242153833, lng:-53.405179157937106},
+];
+
+const equipamentos = [
+  {marca:'Huawei', modelo:'AX2 / AX2S',         plano:'100 a 500 Mega',   wifi:'Wi-Fi 6 (AX1500)',  dif:'Entrada com Wi-Fi 6, ótimo para Mesh.'},
+  {marca:'Huawei', modelo:'AX3 (Dual-Core)',     plano:'100 a 700 Mega',   wifi:'Wi-Fi 6 (AX3000)',  dif:'Suporta largura de banda de 160MHz.'},
+  {marca:'Huawei', modelo:'AX3 Pro / AX3S',      plano:'100 a 1000 Mega',  wifi:'Wi-Fi 6 (AX3000)',  dif:'Processador Quad-Core; ideal para 1 Giga.'},
+  {marca:'TP-Link',modelo:'Archer C6 / C80',     plano:'100 a 400 Mega',   wifi:'Wi-Fi 5 (AC1200/1900)', dif:'Estável, mas Wi-Fi sofre acima de 500 Mega.'},
+  {marca:'TP-Link',modelo:'Archer AX12',         plano:'100 a 600 Mega',   wifi:'Wi-Fi 6 (AX1500)',  dif:'O sucessor do C6 para nova geração.'},
+  {marca:'TP-Link',modelo:'Archer AX53 / AX55',  plano:'100 a 1000 Mega',  wifi:'Wi-Fi 6 (AX3000)',  dif:'Hardware robusto, ideal para planos de 1 Giga.'},
+  {marca:'TP-Link',modelo:'Archer AX72 / AX73',  plano:'100 a 1000 Mega+', wifi:'Wi-Fi 6 (AX5400)',  dif:'6 antenas; alta performance para muitos usuários.'},
+  {marca:'Mercusys',modelo:'MR60X / MR80X',      plano:'100 a 1000 Mega',  wifi:'Wi-Fi 6 (AX3000)',  dif:'Melhor custo-benefício (marca da TP-Link).'},
+];
+
+let usuarios = [
+  {id:1, nome:'Administrador', email:'admin@dipelnet.com.br', role:'Admin'},
+];
+
+// Armazena as imagens por guia/passo: guiaImagens['onu02b'][0] = 'url'
+let guiaImagens = JSON.parse(localStorage.getItem('dp-imagens') || '{}');
+
+function salvarImagens() {
+  localStorage.setItem('dp-imagens', JSON.stringify(guiaImagens));
+}
+
+// ══════════ GUIDE CONTENT ══════════
+const guias = {
+  onu02b:{
+    title:'Ativação 02B / AN5506', badge:'bb', badgeText:'11 etapas',
+    alert:{type:'ai', text:'Use o NE Manager (OLT PANTANAL — 10.125.24.46) para este procedimento.'},
+    steps:[
+      {t:'Abrir ONU Authorization View', d:'No NE Manager, clique no ícone de autorização ONU na barra de ferramentas.'},
+      {t:'Selecionar todas as caixas', d:'Na janela "Switch Object (Unauthorized ONU List)", selecione todas as caixas (OLT PANTANAL → AN5516-04_NODE1 → GC8B[1] e GC8B[2]) e clique OK.'},
+      {t:'Localizar e autorizar o equipamento', d:'Localize o equipamento pelo SN/Physical ID. Botão direito → "Add to the ONU Authority List" → "As Physical ID Authentication Mode Added to the Whitelist".', tip:'⚠️ Confirme que o SN confere com o equipamento físico do cliente.'},
+      {t:'Selecionar "Select Line"', d:'Na janela "Configure the Selection Range", selecione "Select Line" e clique OK.'},
+      {t:'Create on Device', d:'Role a barra até o final. Confirme o SN em azul. Botão direito → "Create on Device" → "Select Line" novamente.', tip:'O equipamento deve aparecer destacado em azul ao final da lista.'},
+      {t:'Verificar na ONU List e renomear', d:'Volte para a aba "ONU List" e pesquise pelo MAC/SN. Confirme "ON LINE". Botão direito → "Attribute" e renomeie: PDO [nº PDO] [nome cliente]. Ex: PDO 8104 GIOVANI MARTINS'},
+      {t:'Abrir Service Configuration', d:'Botão direito no cliente → "Service Configuration".'},
+      {t:'Configurar WAN Service', d:'Menu esquerdo → "WAN Service" → "Add".\n• WAN_Name: INTERNET_R_VID_[VLAN]\n• WAN_Mode: INTERNET\n• WAN_Conn_Type: ROUTE\n• WAN_Vlan_Id: [VLAN da OLT]\n• Wan_D_S_P: PPPOE\n• WAN_PPPOE_Username: [pppoe@dipelnet.com.br]\n• WAN_PPPOE_Password: [senha IXC]\n• Ativar: LAN1, LAN2, LAN3, LAN4, 2.4G_SSID1, 5G_SSID1\nClicar em "Create on Device".', tip:'O PPPoE e senha são gerados no IXC junto ao cadastro do cliente.'},
+      {t:'Configurar Web Administrator', d:'"Web Administrator Config" → senha em todas as caixas: cactelvoip → "Create on Device".'},
+      {t:'ONU Local Manage Interface', d:'"ONU Local Manage Interface Configure" → todas as opções em ENABLE → "Create on Device".'},
+      {t:'Configurar no portal web', d:'Após autenticação no IXC, acesse a página web do equipamento:\n• Network → DHCP Service: DNS Primário 187.49.80.2, DNS Secundário 8.8.8.8, Lease Time 12h → Apply\n• BroadBand Settings: confirmar VLAN ID, PPPoE e State: Connected', tip:'Se não autenticar, verifique PPPoE e senha no IXC.'},
+    ],
+    danger:'Sempre confirme o SN antes de criar no device. SN errado pode derrubar outro cliente.'
+  },
+  huawei:{
+    title:'Ativação Huawei em Bridge', badge:'br', badgeText:'7 etapas',
+    alert:{type:'ai', text:'Use o iManager U2000 (Suporte Interno: 100.64.221.250) para este procedimento.'},
+    steps:[
+      {t:'Localizar o cliente no GPON ONU', d:'No iManager U2000 → GPON Management → GPON ONU. Localize o cliente (status verde = ON LINE).'},
+      {t:'Acessar UNI Port Info', d:'Na parte inferior, clique na aba "Current ONU: UNI Port Info". Serão listadas as portas ETH e POTS.'},
+      {t:'Modificar a porta ETH 1', d:'Botão direito na porta ETH com "Activated (Online)" → "Modify". Campo "Default VLAN ID (1-4095)": coloque 10. Clique OK.'},
+      {t:'Vincular VAS Profile', d:'Botão direito no cliente → vincular VAS Profile. Selecione "ONT-BRIDGE-2020" → OK. Marque "Download to NE".', tip:'O perfil ONT-BRIDGE-2020 é o padrão para modo bridge na Dipelnet.'},
+      {t:'Verificar Service Port Info', d:'Aba "Service Port Info". Confirme:\n• Connection Type: LAN-ONT\n• Service Type: Multi-Service VLAN\n• User VLAN: 10\n• VLAN ID: 673 (ou VLAN da OLT)'},
+      {t:'Verificar Details', d:'Aba "Details" (parte inferior). Confirme: "ONU General VAS Profile" = "ONT-BRIDGE-2020".'},
+      {t:'Confirmar ativação', d:'Verifique no IXC se o cliente autenticou. Em modo bridge, o PPPoE é configurado no roteador do cliente.', tip:'Em caso de falha, verifique se o VLAN ID confere com a VLAN da OLT.'},
+    ],
+    danger:''
+  },
+  telefonia:{
+    title:'Configuração de Telefonia VoIP', badge:'bg', badgeText:'6 etapas',
+    alert:{type:'ai', text:'Configuração feita na interface web da ONT Huawei. Cascavel e Corbélia usam servidor 187.49.80.21.'},
+    steps:[
+      {t:'Acessar Voice → VoIP Basic', d:'Na interface web da ONT → Voice → VoIP Basic. Tela "Basic Profile Parameters (SIP)".'},
+      {t:'Configurar os servidores SIP', d:'Preencha com o IP da região (Cascavel/Corbélia = 187.49.80.21):\n• Outbound Proxy Server Address\n• Address of the Standby Outbound Proxy Server\n• Address of the Primary Proxy Server\n• Address of the Standby Proxy Server\n• Home Domain\n\nPortas: todas em 5060', tip:'⚠️ Todos os campos de endereço SIP devem ter o mesmo IP. Não deixe nenhum em branco.'},
+      {t:'Configurar Signaling Port e Region', d:'• Signaling Port: 2_VOIP_R_VID_20\n• Media Port: 2_VOIP_R_VID_20\n• Region: Brazil'},
+      {t:'Configurar usuário SIP', d:'Basic User Parameters → New:\n• Enable User: ✅\n• URI: [número da linha] Ex: 30160294\n• Registration User Name: [mesmo número]\n• Associated POTS Port: 1\n• Authentication User Name: [mesmo número]\n• Password: [senha fornecida]\n→ Apply', tip:'A linha e senha são fornecidas pelo setor responsável.'},
+      {t:'Verificar registro VoIP', d:'Service Provisioning → VoIP. Confirme:\n• User Status: Up\n• Call Status: Idle\n\nIf Call Status = Idle + User Status = Up → telefonia registrada com sucesso! ✅'},
+      {t:'Tabela de IPs por região', d:'• Cascavel / Corbélia: 187.49.80.21 (cód. 6418)\n• Outro servidor 1: 187.49.80.19 (cód. 6123)\n• Outro servidor 2: 187.49.80.18 (cód. 6145)\n• Outro servidor 3: 187.49.80.22 (cód. 6663)', tip:'Confirme sempre o IP da região antes de configurar.'},
+    ],
+    danger:'Se User Status = Down, verifique se o IP do servidor SIP está correto para a região.'
+  },
+  '02bbridge':{
+    title:'02B / HG em Bridge', badge:'bp', badgeText:'4 etapas',
+    alert:{type:'ai', text:'Use o NE Manager. Repita o procedimento em todas as portas LAN disponíveis ou ativas.'},
+    steps:[
+      {t:'Acessar Port Service Config', d:'NE Manager → localize o cliente na ONU List → botão direito → "Port Service Config".'},
+      {t:'LAN1 → Add serviço', d:'Painel esquerdo: PDO [número] → Data Port → LAN1. Na aba "Service Configuration" → "Add".'},
+      {t:'Configurar CVLAN como TAG', d:'Na janela "Add Port Service Configuration":\n• CVLAN Mode: altere de "Transparent" para "Tag"\n• CVLAN ID: insira a VLAN da OLT\n→ OK', tip:'A VLAN é a mesma da autenticação da OLT. Consulte o técnico caso não saiba.'},
+      {t:'Create on Device e repetir', d:'Confirme que apareceu (Unicast, Tag, sua VLAN) → "Create on Device".\n\nRepita os passos 2, 3 e 4 para LAN2, LAN3 e LAN4.', tip:'Sempre clique "Create on Device" ao finalizar cada porta.'},
+    ],
+    danger:''
+  }
+};
+
+// ══════════ NAV ══════════
+const pgInfo = {
+  dashboard:    ['Dashboard','Visão geral do sistema'],
+  guias:        ['Guias de Instrução','Tutoriais e procedimentos'],
+  equipamentos: ['Equipamentos','Modelos compatíveis e planos suportados'],
+  tecnicos:     ['Técnicos','Equipe e regiões de atuação'],
+  mapa:         ['Mapa de Técnicos','Localização em tempo real'],
+  avisos:       ['Avisos e Comunicados','Informações para a equipe'],
+  scripts:      ['Scripts de Atendimento','Textos prontos'],
+  usuarios:     ['Gerenciar Usuários','Colaboradores com acesso'],
+};
+
+function go(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  const [t, s] = pgInfo[id] || [id, ''];
+  document.getElementById('pg-title').textContent = t;
+  document.getElementById('pg-sub').textContent = s;
+  if (id === 'guias') backGuias();
+  if (id === 'tecnicos') renderTecGrid();
+  if (id === 'equipamentos') renderEquip();
+  if (id === 'mapa') initMap();
+  if (id === 'usuarios') renderUsers();
+  closeSidebar();
+}
+
+// ══════════ DARK MODE ══════════
+function toggleDark() {
+  const d = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = d ? 'light' : 'dark';
+  document.getElementById('dark-toggle').classList.toggle('on', !d);
+  localStorage.setItem('dp-theme', d ? 'light' : 'dark');
+}
+(function(){
+  const t = localStorage.getItem('dp-theme');
+  if (t === 'dark') { document.documentElement.dataset.theme = 'dark'; document.getElementById('dark-toggle').classList.add('on'); }
+})();
+
+// ══════════ MOBILE ══════════
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('mob-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('mob-overlay').classList.remove('open'); }
+
+// ══════════ MODAL ══════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// ══════════ TOAST ══════════
+function toast(msg, color = '#1a56db') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color; t.style.display = 'block'; t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.style.display = 'none', 200); }, 2800);
+}
+
+// ══════════ CLOUDINARY UPLOAD ══════════
+function uploadImagem(guiaId, stepIndex) {
+  // Verifica se o widget do Cloudinary está disponível
+  if (typeof cloudinary === 'undefined') {
+    toast('Cloudinary não carregado. Verifique sua conexão.', '#dc2626');
+    return;
+  }
+
+  // Para usar o widget, você precisa configurar um Upload Preset "unsigned" no painel do Cloudinary:
+  // Cloudinary Dashboard → Settings → Upload → Upload Presets → Add upload preset
+  // Defina como "unsigned" e anote o nome do preset
+
+  if (CLOUDINARY_CLOUD_NAME === 'seu-cloud-name') {
+    toast('Configure o CLOUDINARY_CLOUD_NAME no topo do arquivo!', '#d97706');
+    return;
+  }
+
+  const widget = cloudinary.createUploadWidget({
+    cloudName: CLOUDINARY_CLOUD_NAME,
+    uploadPreset: CLOUDINARY_PRESET,
+    apiKey: CLOUDINARY_API_KEY,
+    sources: ['local', 'camera'],
+    multiple: false,
+    maxFileSize: 5000000,
+    resourceType: 'image',
+    folder: `dipelnet/guias/${guiaId}`,
+    cropping: false,
+    showSkipCropButton: true,
+    language: 'pt',
+    text: {
+      pt: {
+        or: 'ou',
+        back: 'Voltar',
+        close: 'Fechar',
+        upload_more: 'Enviar mais',
+        drop_title_single: 'Arraste e solte o print aqui',
+        select_file: 'Selecionar arquivo',
+      }
+    }
+  }, (error, result) => {
+    if (!result || result.event !== 'success') return;
+    const url = result.info.secure_url;
+
+    // Salva a URL da imagem
+    if (!guiaImagens[guiaId]) guiaImagens[guiaId] = {};
+    guiaImagens[guiaId][stepIndex] = url;
+    salvarImagens();
+
+    // Atualiza o slot de imagem na tela
+    const slot = document.getElementById(`img-slot-${guiaId}-${stepIndex}`);
+    if (slot) {
+      slot.innerHTML = `
+        <img src="${url}" alt="Print passo ${stepIndex + 1}">
+        <button class="img-remove-btn" onclick="removerImagem('${guiaId}', ${stepIndex})" title="Remover imagem">×</button>
+      `;
+    }
+
+    toast('Print enviado com sucesso!', '#059669');
+  });
+
+  widget.open();
+}
+
+function removerImagem(guiaId, stepIndex) {
+  if (!confirm('Remover este print?')) return;
+  if (guiaImagens[guiaId]) delete guiaImagens[guiaId][stepIndex];
+  salvarImagens();
+
+  const slot = document.getElementById(`img-slot-${guiaId}-${stepIndex}`);
+  if (slot) {
+    slot.innerHTML = `
+      <div class="img-empty">
+        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--text-l)"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <div class="img-empty-text">Print do passo ${stepIndex + 1}</div>
+        <button class="img-upload-btn" onclick="uploadImagem('${guiaId}', ${stepIndex})">
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Enviar print
+        </button>
+      </div>
+    `;
+  }
+  toast('Print removido', '#dc2626');
+}
+
+// ══════════ GUIAS VIEWER ══════════
+function filterGuias(v) {
+  document.querySelectorAll('#guia-list-cont .guia-item').forEach(el => {
+    el.style.display = (el.textContent + (el.dataset.tags || '')).toLowerCase().includes(v.toLowerCase()) ? '' : 'none';
+  });
+}
+
+function openGuia(id) {
+  const g = guias[id]; if (!g) return;
+  document.getElementById('guia-list-view').classList.add('hidden');
+  document.getElementById('guia-viewer').classList.remove('hidden');
+  document.getElementById('gv-title').textContent = g.title;
+
+  let h = `<div class="card">
+    <div class="card-hdr">
+      <div><div class="ct">${g.title}</div></div>
+      <span class="badge ${g.badge}">${g.badgeText}</span>
+    </div>
+    <div class="card-body">
+      <div class="alert ${g.alert.type}" style="margin-bottom:16px">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        ${g.alert.text}
+      </div>`;
+
+  g.steps.forEach((s, i) => {
+    const imgUrl = guiaImagens[id] && guiaImagens[id][i] ? guiaImagens[id][i] : null;
+    const imgSlot = imgUrl
+      ? `<div class="img-slot" id="img-slot-${id}-${i}">
+           <img src="${imgUrl}" alt="Print passo ${i+1}">
+           <button class="img-remove-btn" onclick="removerImagem('${id}', ${i})" title="Remover">×</button>
+         </div>`
+      : `<div class="img-slot" id="img-slot-${id}-${i}">
+           <div class="img-empty">
+             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" style="color:var(--text-l)"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+             <div class="img-empty-text">Print do passo ${i+1}</div>
+             <button class="img-upload-btn no-print" onclick="uploadImagem('${id}', ${i})">
+               <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+               Enviar print
+             </button>
+           </div>
+         </div>`;
+
+    h += `<div class="step-item">
+      <div class="step-num">${i+1}</div>
+      <div style="flex:1">
+        <div class="step-title">${s.t}</div>
+        <div class="step-desc">${s.d.replace(/\n/g, '<br>')}</div>
+        ${s.tip ? `<div class="step-tip"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${s.tip}</div>` : ''}
+        ${imgSlot}
+      </div>
+    </div>`;
+  });
+
+  if (g.danger) {
+    h += `<div class="alert ar" style="margin-top:14px;margin-bottom:0">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      ${g.danger}
+    </div>`;
+  }
+  h += '</div></div>';
+  document.getElementById('gv-content').innerHTML = h;
+  document.querySelector('.content').scrollTop = 0;
+}
+
+function backGuias() {
+  document.getElementById('guia-list-view').classList.remove('hidden');
+  document.getElementById('guia-viewer').classList.add('hidden');
+}
+
+// ══════════ EQUIPAMENTOS ══════════
+function renderEquip() {
+  document.getElementById('equip-tbody').innerHTML = equipamentos.map(e => {
+    const isWifi6 = e.wifi.includes('Wi-Fi 6');
+    const megaMax = parseInt(e.plano.replace(/\D+/g, '').slice(-4) || 1000);
+    const pct = Math.min(100, Math.round((megaMax / 1000) * 100));
+    return `<tr>
+      <td style="font-weight:600">${e.marca}</td>
+      <td>${e.modelo}</td>
+      <td style="white-space:nowrap">${e.plano}<div class="mega-bar"><div class="mega-fill" style="width:${pct}%"></div></div></td>
+      <td><span class="${isWifi6 ? 'wifi6' : 'wifi5'}">${e.wifi}</span></td>
+      <td style="color:var(--text-m);font-size:12px">${e.dif}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════ TÉCNICOS ══════════
+const avCls = ['av-b','av-g','av-a'];
+const sbBadge = {'Disponível':'bg','Em campo':'ba','Folga':'bgr'};
+function ini(n) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
+
+function renderTecGrid() {
+  document.getElementById('dash-tec-count').textContent = tecnicos.length;
+  document.getElementById('tec-grid').innerHTML = tecnicos.map((t, i) => `
+    <div class="tec-card">
+      <div style="display:flex;gap:11px;align-items:flex-start;margin-bottom:10px">
+        <div class="av ${avCls[i % avCls.length]}">${ini(t.nome)}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600">${t.nome}</div>
+          <div style="font-size:11px;color:var(--text-m)">${t.cod}</div>
+          <div style="margin-top:5px"><span class="badge ${sbBadge[t.status] || 'bgr'}">${t.status}</span></div>
+        </div>
+      </div>
+      <div>${(t.regioes || []).map(r => `<span class="rt">${r}</span>`).join('')}</div>
+      <div class="tec-foot">
+        <span>${t.lat ? '📍 No mapa' : 'Sem localização'}</span>
+        <span style="color:var(--red);cursor:pointer" onclick="deleteTec(${t.id})">Remover</span>
+      </div>
+    </div>`).join('');
+}
+
+function salvarTec() {
+  const nome = document.getElementById('ti-nome').value.trim();
+  if (!nome) { toast('Informe o nome', '#d97706'); return; }
+  const r = document.getElementById('ti-regioes').value.split(',').map(x => x.trim()).filter(Boolean);
+  tecnicos.push({ id: Date.now(), nome, cod: document.getElementById('ti-cod').value || 'T0' + (tecnicos.length + 1), regioes: r, status: document.getElementById('ti-status').value, lat: null, lng: null });
+  renderTecGrid();
+  if (window._map) addTecMarkers();
+  closeModal('m-tec');
+  ['ti-nome','ti-cod','ti-end','ti-regioes'].forEach(id => document.getElementById(id).value = '');
+  toast('Técnico salvo!', '#059669');
+}
+
+function deleteTec(id) {
+  if (!confirm('Remover?')) return;
+  tecnicos = tecnicos.filter(t => t.id !== id);
+  renderTecGrid();
+  toast('Removido', '#dc2626');
+}
+
+// ══════════ GOOGLE MAPS ══════════
+let mapLoaded = false;
+window._map = null;
+window._markers = [];
+
+function initMap() {
+  document.getElementById('mapa-ativos').textContent = tecnicos.filter(t => t.status !== 'Folga').length;
+  if (!mapLoaded) {
+    mapLoaded = true;
+    const container = document.getElementById('map-container');
+    container.innerHTML = '<div style="height:480px;display:flex;align-items:center;justify-content:center;color:var(--text-m);font-size:13px;flex-direction:column;gap:10px"><div style="width:28px;height:28px;border:3px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>Carregando mapa...</div>';
+    const s = document.createElement('script');
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_KEY}&callback=onMapReady&language=pt`;
+    s.async = true; document.head.appendChild(s);
+  } else if (window._map) {
+    addTecMarkers();
+  }
+}
+
+window.onMapReady = function() {
+  const container = document.getElementById('map-container');
+  container.innerHTML = '';
+  const div = document.createElement('div');
+  div.style.cssText = 'width:100%;height:480px';
+  container.appendChild(div);
+  window._map = new google.maps.Map(div, {
+    center: {lat: -24.9558, lng: -53.4548}, zoom: 12,
+    styles: [{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]}]
+  });
+  addTecMarkers();
+};
+
+function addTecMarkers() {
+  if (!window._map) return;
+  window._markers.forEach(m => m.setMap(null));
+  window._markers = [];
+  const colors = {'Disponível':'#059669','Em campo':'#d97706','Folga':'#9ca3af'};
+  tecnicos.forEach(t => {
+    if (!t.lat || !t.lng) return;
+    const marker = new google.maps.Marker({
+      position: {lat: t.lat, lng: t.lng}, map: window._map, title: t.nome,
+      icon: { path: google.maps.SymbolPath.CIRCLE, scale: 11, fillColor: colors[t.status]||'#9ca3af', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 2.5 }
+    });
+    const iw = new google.maps.InfoWindow({
+      content: `<div style="font-family:'DM Sans',sans-serif;padding:2px;min-width:160px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">${t.nome}</div>
+        <div style="font-size:12px;color:#6b7280;margin-bottom:6px">${t.cod}</div>
+        <div>${(t.regioes||[]).map(r=>`<span style="display:inline-block;padding:1px 6px;background:#e8f0fe;color:#1e40af;border-radius:20px;font-size:11px;margin:1px">${r}</span>`).join('')}</div>
+        <div style="margin-top:8px"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:${t.status==='Disponível'?'#d1fae5':t.status==='Em campo'?'#fef3c7':'#f3f4f6'};color:${t.status==='Disponível'?'#065f46':t.status==='Em campo'?'#92400e':'#374151'}">${t.status}</span></div>
+      </div>`
+    });
+    marker.addListener('click', () => iw.open(window._map, marker));
+    window._markers.push(marker);
+  });
+}
+
+// ══════════ AVISOS ══════════
+function salvarAviso() {
+  const t = document.getElementById('av-title').value.trim();
+  const b = document.getElementById('av-body').value.trim();
+  if (!t || !b) { toast('Preencha título e mensagem', '#d97706'); return; }
+  const prio = document.getElementById('av-prio').value;
+  const card = document.createElement('div');
+  card.className = 'aviso-card';
+  if (prio === 'alta') card.style.borderLeft = '3px solid var(--red)';
+  card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div style="font-size:14px;font-weight:600">${t}${prio==='alta'?' <span class="aviso-pin">Fixado</span>':''}</div><span style="font-size:11px;color:var(--text-m)">Agora</span></div><div style="font-size:13px;color:var(--text-m);line-height:1.6">${b}</div><div style="font-size:11px;color:var(--text-l);margin-top:8px">Admin · Agora</div>`;
+  document.getElementById('avisos-list').insertBefore(card, document.getElementById('avisos-list').firstChild);
+  closeModal('m-aviso');
+  document.getElementById('av-title').value = ''; document.getElementById('av-body').value = '';
+  toast('Aviso publicado!', '#059669');
+}
+
+// ══════════ SCRIPTS ══════════
+function copiar(btn) {
+  navigator.clipboard.writeText(btn.previousElementSibling.textContent)
+    .then(() => toast('Script copiado!', '#059669'))
+    .catch(() => toast('Selecione e copie manualmente', '#d97706'));
+}
+
+// ══════════ USUÁRIOS ══════════
+const roleBadge = {'Admin':'br','Gestor':'bp','Técnico':'ba','Colaborador':'bb'};
+
+function renderUsers() {
+  document.getElementById('users-tbody').innerHTML = usuarios.map(u => `
+    <tr>
+      <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:9px"><div class="av av-b" style="width:30px;height:30px;font-size:11px">${ini(u.nome)}</div><span style="font-weight:500">${u.nome}</span></div></td>
+      <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text-m)">${u.email}</td>
+      <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)"><span class="badge ${roleBadge[u.role]||'bgr'}">${u.role}</span></td>
+      <td style="padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)"><button class="btn btn-danger btn-sm" onclick="delUser(${u.id})">Remover</button></td>
+    </tr>`).join('');
+}
+
+function salvarUser() {
+  const nome = document.getElementById('u-nome').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  if (!nome || !email) { toast('Preencha nome e e-mail', '#d97706'); return; }
+  usuarios.push({id: Date.now(), nome, email, role: document.getElementById('u-role').value});
+  renderUsers(); closeModal('m-user');
+  ['u-nome','u-email','u-senha'].forEach(id => document.getElementById(id).value = '');
+  toast('Colaborador criado!', '#059669');
+}
+
+function delUser(id) {
+  if (!confirm('Remover usuário?')) return;
+  usuarios = usuarios.filter(u => u.id !== id);
+  renderUsers();
+}
+
+// ══════════ INIT ══════════
+renderEquip();
+renderTecGrid();
+renderUsers();
+</script>
+</body>
+</html>
