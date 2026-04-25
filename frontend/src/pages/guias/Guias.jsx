@@ -93,12 +93,14 @@ const CAT = {
   'Telefonia':  'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   'Bridge':     'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
   'Instalação': 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
+  'Checklist':  'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 const BC = {
   bb: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   br: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
   bg: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   bp: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+  bc: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 
 function Gallery({imgs, stepIdx, isAdmin, onUpload, onRemove}) {
@@ -140,42 +142,57 @@ function Gallery({imgs, stepIdx, isAdmin, onUpload, onRemove}) {
   );
 }
 
-function ChecklistView() {
+function ChecklistPage({ onVoltar }) {
   return (
-    <div className="p-5 lg:p-6">
-      <div className="flex gap-2.5 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 text-sm mb-5">
-        <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <span>Itens obrigatórios a serem registrados após toda instalação. Lembre-se: sem registros, sem comprovação.</span>
+    <div>
+      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <button onClick={onVoltar} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
+        <span>/</span>
+        <span className="text-gray-900 dark:text-gray-100 font-medium">Checklist pós-instalação</span>
       </div>
 
-      <div className="flex flex-col gap-2">
-        {CHECKLIST_ITEMS.map((item, idx) => (
-          <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
-              {idx + 1}
-            </div>
-            <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{item.texto}</span>
-            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="text-base font-semibold text-gray-900 dark:text-gray-100">✅ Checklist pós-instalação</div>
+          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{CHECKLIST_ITEMS.length} itens</span>
+        </div>
+
+        <div className="p-5 lg:p-6">
+          <div className="flex gap-2.5 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 text-sm mb-5">
+            <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Itens obrigatórios a serem registrados após toda instalação. Sem registros fotográficos, não há comprovação em caso de irregularidade.</span>
           </div>
-        ))}
-      </div>
 
-      <div className="mt-5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs leading-relaxed">
-        <strong>⚠️ Atenção:</strong> Em caso de irregularidade ou reclamação do cliente, somente os registros fotográficos servirão como comprovação. Sem fotos, não há defesa. Dúvidas, falar no PV.
+          <div className="flex flex-col gap-2">
+            {CHECKLIST_ITEMS.map((item, idx) => (
+              <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                  {idx + 1}
+                </div>
+                <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{item.texto}</span>
+                <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs leading-relaxed">
+            <strong>⚠️ Atenção:</strong> Em caso de irregularidade ou reclamação do cliente, somente os registros fotográficos servirão como comprovação. Sem fotos, não há defesa. Dúvidas, falar no PV.
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
 export default function Guias() {
-  const {temRole}        = useAuth();
-  const [guias,setGuias] = useState([]);
-  const [busca,setBusca] = useState('');
-  const [atual,setAtual] = useState(null);
-  const [cont,setCont]   = useState(null);
-  const [aba,setAba]     = useState('guia');
+  const {temRole}          = useAuth();
+  const [guias,setGuias]   = useState([]);
+  const [busca,setBusca]   = useState('');
+  const [atual,setAtual]   = useState(null);
+  const [cont,setCont]     = useState(null);
+  const [verChecklist, setVerChecklist] = useState(false);
 
   useEffect(() => {
     api.get('/guias').then(r => setGuias(r.data.length ? r.data : GUIAS_LOCAL)).catch(() => setGuias(GUIAS_LOCAL));
@@ -183,7 +200,6 @@ export default function Guias() {
 
   const abrir = async (g) => {
     setAtual(g);
-    setAba('guia');
     const local = CONTEUDO_LOCAL[g.slug];
     const base  = JSON.parse(JSON.stringify(local || {}));
     try {
@@ -246,85 +262,63 @@ export default function Guias() {
     });
   };
 
+  // ── CHECKLIST PAGE ──
+  if (verChecklist) {
+    return <ChecklistPage onVoltar={() => setVerChecklist(false)} />;
+  }
+
   // ── VISUALIZADOR ──
   if (atual && cont) {
     const steps = cont.steps || [];
     return (
       <div>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
-          <button onClick={() => { setAtual(null); setCont(null); setAba('guia'); }} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
+          <button onClick={() => { setAtual(null); setCont(null); }} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
           <span>/</span>
           <span className="text-gray-900 dark:text-gray-100 font-medium">{atual.titulo}</span>
         </div>
 
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
-          {/* Header */}
           <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{atual.titulo}</div>
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[cont.badge]||BC.bb}`}>{cont.badgeText}</span>
           </div>
 
-          {/* Abas */}
-          <div className="flex border-b border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setAba('guia')}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${aba === 'guia'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              📋 Guia
-            </button>
-            <button
-              onClick={() => setAba('checklist')}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${aba === 'checklist'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-            >
-              ✅ Checklist pós-instalação
-            </button>
+          <div className="p-5 lg:p-6">
+            {cont.alerta && (
+              <div className="flex gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm mb-5">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {cont.alerta}
+              </div>
+            )}
+            {cont.aviso && (
+              <div className="flex gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-300 mb-4">
+                {cont.aviso}
+              </div>
+            )}
+            {steps.map((s, i) => (
+              <div key={i} className={`flex gap-4 py-4 ${i < steps.length-1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
+                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i+1}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{s.titulo}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>
+                  {s.tip && (
+                    <div className="flex gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-lg p-2.5 text-xs mt-2.5 leading-relaxed">
+                      <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      {s.tip}
+                    </div>
+                  )}
+                  <Gallery imgs={s.imgs||[]} stepIdx={i} isAdmin={temRole('admin')} onUpload={upload} onRemove={remover}/>
+                </div>
+              </div>
+            ))}
+            {cont.aviso_perigo && (
+              <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm mt-4">
+                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {cont.aviso_perigo}
+              </div>
+            )}
           </div>
-
-          {/* Aba Guia */}
-          {aba === 'guia' && (
-            <div className="p-5 lg:p-6">
-              {cont.alerta && (
-                <div className="flex gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm mb-5">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  {cont.alerta}
-                </div>
-              )}
-              {cont.aviso && (
-                <div className="flex gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-300 mb-4">
-                  {cont.aviso}
-                </div>
-              )}
-              {steps.map((s, i) => (
-                <div key={i} className={`flex gap-4 py-4 ${i < steps.length-1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
-                  <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i+1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{s.titulo}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>
-                    {s.tip && (
-                      <div className="flex gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-lg p-2.5 text-xs mt-2.5 leading-relaxed">
-                        <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        {s.tip}
-                      </div>
-                    )}
-                    <Gallery imgs={s.imgs||[]} stepIdx={i} isAdmin={temRole('admin')} onUpload={upload} onRemove={remover}/>
-                  </div>
-                </div>
-              ))}
-              {cont.aviso_perigo && (
-                <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm mt-4">
-                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  {cont.aviso_perigo}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Aba Checklist */}
-          {aba === 'checklist' && <ChecklistView />}
         </div>
       </div>
     );
@@ -340,6 +334,26 @@ export default function Guias() {
       </div>
 
       <div className="flex flex-col gap-3">
+        {/* Card fixo do Checklist */}
+        <div
+          onClick={() => setVerChecklist(true)}
+          className="bg-white dark:bg-gray-900 border border-emerald-300 dark:border-emerald-700 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all"
+        >
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Checklist pós-instalação</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">Itens obrigatórios de registro fotográfico após cada instalação</div>
+            <div className="flex flex-wrap gap-2 items-center mt-2">
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">Checklist</span>
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">{CHECKLIST_ITEMS.length} itens</span>
+            </div>
+          </div>
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+
+        {/* Guias normais */}
         {guias
           .filter(g => g.titulo.toLowerCase().includes(busca.toLowerCase()) || (g.categoria||'').toLowerCase().includes(busca.toLowerCase()))
           .map(g => {
