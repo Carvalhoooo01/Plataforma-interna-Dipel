@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
+const API = import.meta.env.VITE_API_URL || '';
+
 export default function Reciclagem() {
   const { temRole }             = useAuth();
   const [temPdf, setTemPdf]     = useState(false);
@@ -8,13 +10,12 @@ export default function Reciclagem() {
   const [enviando, setEnviando] = useState(false);
   const [progresso, setProg]    = useState(0);
   const [erro, setErro]         = useState('');
-  const [ts, setTs]             = useState(Date.now()); // força reload do iframe
+  const [ts, setTs]             = useState(Date.now());
   const inputRef                = useRef(null);
   const podeGerenciar           = temRole('admin', 'gestor');
 
-  // Verifica se existe PDF no servidor
   useEffect(() => {
-    fetch('/api/config/reciclagem-pdf-proxy', { method: 'HEAD' })
+    fetch(`${API}/api/config/reciclagem-pdf-proxy`, { method: 'HEAD' })
       .then(r => setTemPdf(r.ok))
       .catch(() => setTemPdf(false))
       .finally(() => setCarreg(false));
@@ -41,14 +42,14 @@ export default function Reciclagem() {
           }
         };
         xhr.onerror = () => reject(new Error('Erro de rede'));
-        xhr.open('POST', '/api/config/reciclagem-upload-local');
+        xhr.open('POST', `${API}/api/config/reciclagem-upload-local`);
         xhr.setRequestHeader('Authorization', `Bearer ${token}`);
         xhr.setRequestHeader('Content-Type', 'application/pdf');
         xhr.send(buffer);
       });
 
       setTemPdf(true);
-      setTs(Date.now()); // força reload do iframe
+      setTs(Date.now());
     } catch(e) {
       setErro('Erro: ' + e.message);
     } finally { setEnviando(false); setProg(0); }
@@ -58,7 +59,7 @@ export default function Reciclagem() {
     if (!confirm('Remover o PDF atual?')) return;
     try {
       const token = localStorage.getItem('dp_token');
-      await fetch('/api/config/reciclagem-remover', {
+      await fetch(`${API}/api/config/reciclagem-remover`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -135,7 +136,7 @@ export default function Reciclagem() {
         <div style={{ flex:1, borderRadius:12, overflow:'hidden', border:'1px solid #e5e7eb', boxShadow:'0 4px 16px rgba(0,0,0,.08)' }}>
           <iframe
             key={ts}
-            src={`/api/config/reciclagem-pdf-proxy?t=${ts}`}
+            src={`${API}/api/config/reciclagem-pdf-proxy?t=${ts}`}
             width="100%" height="100%"
             style={{ display:'block', border:'none', width:'100%', height:'100%' }}
             title="Manual de Reciclagem"
