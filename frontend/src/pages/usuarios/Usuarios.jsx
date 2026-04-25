@@ -6,9 +6,22 @@ const ROLES      = ['admin','gestor','colaborador'];
 const ROLE_BADGE = { admin:['#fee2e2','#991b1b'], gestor:['#ede9fe','#5b21b6'], colaborador:['#e8f0fe','#1e40af'] };
 const ROLE_LABEL = { admin:'Admin', gestor:'Gestor', colaborador:'Colaborador' };
 const ini = n => (n||'').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-const th  = {padding:'9px 14px',fontSize:11,fontWeight:600,color:'#6b7280',textTransform:'uppercase',letterSpacing:.5,borderBottom:'1px solid #e5e7eb',background:'#f9fafb',textAlign:'left',whiteSpace:'nowrap'};
-const td  = {padding:'11px 14px',fontSize:13,borderBottom:'1px solid #e5e7eb',verticalAlign:'middle'};
-const inp = {width:'100%',padding:'8px 11px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:13,outline:'none',boxSizing:'border-box'};
+
+const th = {padding:'9px 14px',fontSize:11,fontWeight:600,color:'#6b7280',textTransform:'uppercase',letterSpacing:.5,borderBottom:'1px solid #e5e7eb',background:'#f9fafb',textAlign:'left',whiteSpace:'nowrap'};
+const td = {padding:'11px 14px',fontSize:13,borderBottom:'1px solid #e5e7eb',verticalAlign:'middle'};
+
+// Input com cor de texto explícita para evitar texto invisível
+const inp = {
+  width:'100%',
+  padding:'8px 11px',
+  border:'1px solid #d1d5db',
+  borderRadius:8,
+  fontSize:13,
+  outline:'none',
+  boxSizing:'border-box',
+  color:'#111827',
+  background:'#ffffff',
+};
 
 const PERM_INI = () => {
   const p = {};
@@ -24,11 +37,11 @@ const Campo = ({ label, children }) => (
 );
 
 export default function Usuarios() {
-  const [lista, setLista]     = useState([]);
-  const [modal, setModal]     = useState(false);
-  const [editId, setEditId]   = useState(null);
-  const [form, setForm]       = useState({ nome:'', email:'', senha:'', role:'colaborador', permissoes: PERM_INI() });
-  const [erro, setErro]       = useState('');
+  const [lista, setLista]       = useState([]);
+  const [modal, setModal]       = useState(false);
+  const [editId, setEditId]     = useState(null);
+  const [form, setForm]         = useState({ nome:'', email:'', senha:'', role:'colaborador', permissoes: PERM_INI() });
+  const [erro, setErro]         = useState('');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
@@ -41,7 +54,7 @@ export default function Usuarios() {
     api.get('/usuarios').then(r => setLista(r.data)).catch(() => {});
   }, []);
 
-  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const set    = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setPerm = (k, v) => setForm(p => ({ ...p, permissoes: { ...p.permissoes, [k]: v } }));
 
   const abrirModal = (u = null) => {
@@ -76,7 +89,6 @@ export default function Usuarios() {
 
   return (
     <div>
-      {/* Cabeçalho com botão */}
       <div style={{display:'flex',justifyContent:'flex-end',marginBottom:16}}>
         <button
           onClick={() => abrirModal()}
@@ -86,7 +98,7 @@ export default function Usuarios() {
         </button>
       </div>
 
-      {/* ── MOBILE: cards ── */}
+      {/* MOBILE: cards */}
       {isMobile ? (
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {!lista.length && (
@@ -98,43 +110,28 @@ export default function Usuarios() {
             const nAbas    = u.role !== 'colaborador' ? 'Acesso total' : Object.values(perms).filter(Boolean).length + ' abas';
             return (
               <div key={u.id} style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:12,padding:'14px 16px',boxShadow:'0 1px 3px rgba(0,0,0,.05)'}}>
-                {/* linha topo: avatar + nome + badge role */}
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
                   <div style={{width:36,height:36,borderRadius:'50%',background:'#e8f0fe',color:'#1e40af',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:600,flexShrink:0}}>
                     {ini(u.nome)}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.nome}</div>
+                    <div style={{fontWeight:600,fontSize:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'#111827'}}>{u.nome}</div>
                     <div style={{fontSize:12,color:'#6b7280',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{u.email}</div>
                   </div>
                   <span style={{padding:'2px 8px',borderRadius:20,fontSize:11,fontWeight:500,background:bg,color:co,flexShrink:0}}>
                     {ROLE_LABEL[u.role]||u.role}
                   </span>
                 </div>
-
-                {/* linha info: acesso + status */}
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
                   <span style={{fontSize:11,color:'#6b7280',background:'#f3f4f6',padding:'2px 8px',borderRadius:10}}>{nAbas}</span>
                   <span style={{fontSize:11,padding:'2px 8px',borderRadius:10,fontWeight:500,background:u.ativo?'#d1fae5':'#f3f4f6',color:u.ativo?'#065f46':'#374151'}}>
                     {u.ativo ? 'Ativo' : 'Inativo'}
                   </span>
                 </div>
-
-                {/* ações */}
                 <div style={{display:'flex',gap:8}}>
-                  <button
-                    onClick={() => abrirModal(u)}
-                    style={{flex:1,background:'transparent',border:'1px solid #e5e7eb',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500}}
-                  >
-                    Editar
-                  </button>
+                  <button onClick={() => abrirModal(u)} style={{flex:1,background:'transparent',border:'1px solid #e5e7eb',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500,color:'#374151'}}>Editar</button>
                   {u.ativo && (
-                    <button
-                      onClick={() => desativar(u.id)}
-                      style={{flex:1,background:'#dc2626',color:'#fff',border:'none',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500}}
-                    >
-                      Desativar
-                    </button>
+                    <button onClick={() => desativar(u.id)} style={{flex:1,background:'#dc2626',color:'#fff',border:'none',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500}}>Desativar</button>
                   )}
                 </div>
               </div>
@@ -142,7 +139,7 @@ export default function Usuarios() {
           })}
         </div>
       ) : (
-        /* ── DESKTOP: tabela ── */
+        /* DESKTOP: tabela */
         <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:10,overflow:'hidden',boxShadow:'0 1px 3px rgba(0,0,0,.06)'}}>
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -168,7 +165,7 @@ export default function Usuarios() {
                       <td style={td}>
                         <div style={{display:'flex',alignItems:'center',gap:9}}>
                           <div style={{width:30,height:30,borderRadius:'50%',background:'#e8f0fe',color:'#1e40af',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600,flexShrink:0}}>{ini(u.nome)}</div>
-                          <span style={{fontWeight:500}}>{u.nome}</span>
+                          <span style={{fontWeight:500,color:'#111827'}}>{u.nome}</span>
                         </div>
                       </td>
                       <td style={{...td,color:'#6b7280'}}>{u.email}</td>
@@ -177,7 +174,7 @@ export default function Usuarios() {
                       <td style={td}><span style={{display:'inline-block',padding:'2px 8px',borderRadius:20,fontSize:11,fontWeight:500,background:u.ativo?'#d1fae5':'#f3f4f6',color:u.ativo?'#065f46':'#374151'}}>{u.ativo?'Ativo':'Inativo'}</span></td>
                       <td style={td}>
                         <div style={{display:'flex',gap:6}}>
-                          <button onClick={() => abrirModal(u)} style={{background:'transparent',border:'1px solid #e5e7eb',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Editar</button>
+                          <button onClick={() => abrirModal(u)} style={{background:'transparent',border:'1px solid #e5e7eb',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer',color:'#374151'}}>Editar</button>
                           {u.ativo && <button onClick={() => desativar(u.id)} style={{background:'#dc2626',color:'#fff',border:'none',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Desativar</button>}
                         </div>
                       </td>
@@ -193,102 +190,133 @@ export default function Usuarios() {
         </div>
       )}
 
-      {/* ── Modal ── */}
+      {/* Modal */}
       {modal && (
         <div
           onClick={() => setModal(false)}
-          style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center'}}
-          // no mobile abre em sheet na base; no desktop centraliza
+          style={{position:'fixed',inset:0,background:'rgba(0,0,0,.45)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}
         >
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background:'#fff',
+              background:'#ffffff',
               borderRadius: isMobile ? '16px 16px 0 0' : 14,
               width: isMobile ? '100%' : 520,
               maxWidth:'100vw',
-              maxHeight: isMobile ? '92vh' : '92vh',
+              maxHeight:'92vh',
               overflowY:'auto',
               boxShadow:'0 20px 60px rgba(0,0,0,.2)',
-              marginBottom: isMobile ? 0 : 'auto',
-              marginTop: isMobile ? 0 : 'auto',
-              alignSelf: isMobile ? 'flex-end' : 'center',
+              position: isMobile ? 'fixed' : 'relative',
+              bottom: isMobile ? 0 : 'auto',
+              left: isMobile ? 0 : 'auto',
             }}
           >
-            <div style={{padding:'18px 22px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between',alignItems:'center',position:'sticky',top:0,background:'#fff',zIndex:1}}>
-              <span style={{fontSize:15,fontWeight:600}}>{editId ? 'Editar Usuário' : 'Novo Colaborador'}</span>
+            {/* Header */}
+            <div style={{padding:'18px 22px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between',alignItems:'center',position:'sticky',top:0,background:'#ffffff',zIndex:1}}>
+              <span style={{fontSize:15,fontWeight:600,color:'#111827'}}>{editId ? 'Editar Usuário' : 'Novo Colaborador'}</span>
               <button onClick={() => setModal(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,color:'#6b7280',lineHeight:1}}>×</button>
             </div>
 
             <div style={{padding:'18px 22px'}}>
               <Campo label="Nome completo">
-                <input value={form.nome} onChange={e=>set('nome',e.target.value)} placeholder="Nome completo" style={inp}/>
+                <input
+                  value={form.nome}
+                  onChange={e => set('nome', e.target.value)}
+                  placeholder="Nome completo"
+                  style={inp}
+                />
               </Campo>
 
               <div style={{display:'grid',gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',gap:14}}>
                 <Campo label="E-mail">
-                  <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="email@dipelnet.com.br" style={inp}/>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={e => set('email', e.target.value)}
+                    placeholder="email@dipelnet.com.br"
+                    style={inp}
+                  />
                 </Campo>
                 <Campo label="Perfil">
-                  <select value={form.role} onChange={e=>set('role',e.target.value)} style={{...inp,background:'#fff'}}>
-                    {ROLES.map(r=><option key={r} value={r}>{ROLE_LABEL[r]||r}</option>)}
+                  <select
+                    value={form.role}
+                    onChange={e => set('role', e.target.value)}
+                    style={{...inp, background:'#ffffff'}}
+                  >
+                    {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]||r}</option>)}
                   </select>
                 </Campo>
               </div>
 
               {!editId && (
                 <Campo label="Senha inicial (mín. 6 caracteres)">
-                  <input type="password" value={form.senha} onChange={e=>set('senha',e.target.value)} placeholder="••••••••" style={inp}/>
+                  <input
+                    type="password"
+                    value={form.senha}
+                    onChange={e => set('senha', e.target.value)}
+                    placeholder="••••••••"
+                    style={inp}
+                  />
                 </Campo>
               )}
 
               {isColaborador && (
                 <div style={{background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:10,padding:14,marginBottom:14}}>
-                  <div style={{fontSize:12,fontWeight:700,color:'#374151',marginBottom:12}}>🔐 Permissões de acesso</div>
+                  <div style={{fontSize:12,fontWeight:700,color:'#374151',marginBottom:12}}>🔒 Permissões de acesso</div>
 
-                  <div style={{marginBottom:14}}>
-                    <div style={{fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:8,textTransform:'uppercase',letterSpacing:.4}}>Abas visíveis</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                      {ABAS.map(a => (
-                        <label key={a.key} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:form.permissoes[a.key]?'#eff6ff':'#fff',border:'1px solid '+(form.permissoes[a.key]?'#bfdbfe':'#e5e7eb'),cursor:'pointer',transition:'all .15s'}}>
-                          <input type="checkbox" checked={!!form.permissoes[a.key]} onChange={e=>setPerm(a.key,e.target.checked)} style={{accentColor:'#1a56db',width:15,height:15}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:form.permissoes[a.key]?'#1e40af':'#374151'}}>{a.label}</span>
-                        </label>
-                      ))}
-                    </div>
+                  <div style={{fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:8,textTransform:'uppercase',letterSpacing:.4}}>Abas visíveis</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}}>
+                    {ABAS.map(a => (
+                      <label key={a.key} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,border:'1px solid #e2e8f0',background:form.permissoes[a.key]?'#eff6ff':'#fff',cursor:'pointer',fontSize:13,color:'#374151'}}>
+                        <input
+                          type="checkbox"
+                          checked={!!form.permissoes[a.key]}
+                          onChange={e => setPerm(a.key, e.target.checked)}
+                          style={{accentColor:'#1a56db',width:15,height:15}}
+                        />
+                        {a.label}
+                      </label>
+                    ))}
                   </div>
 
-                  <div>
-                    <div style={{fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:8,textTransform:'uppercase',letterSpacing:.4}}>Pode editar / excluir</div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                      {[
-                        {key:'editar_tecnicos',  label:'Editar Técnicos'},
-                        {key:'excluir_tecnicos', label:'Excluir Técnicos'},
-                        {key:'editar_avisos',    label:'Editar Avisos'},
-                        {key:'excluir_avisos',   label:'Excluir Avisos'},
-                      ].map(a => (
-                        <label key={a.key} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,background:form.permissoes[a.key]?'#f0fdf4':'#fff',border:'1px solid '+(form.permissoes[a.key]?'#bbf7d0':'#e5e7eb'),cursor:'pointer',transition:'all .15s'}}>
-                          <input type="checkbox" checked={!!form.permissoes[a.key]} onChange={e=>setPerm(a.key,e.target.checked)} style={{accentColor:'#059669',width:15,height:15}}/>
-                          <span style={{fontSize:12,fontWeight:500,color:form.permissoes[a.key]?'#065f46':'#374151'}}>{a.label}</span>
+                  <div style={{fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:8,textTransform:'uppercase',letterSpacing:.4}}>Pode editar / excluir</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                    {['tecnicos','avisos','equipamentos','guias'].map(ctx => (
+                      <>
+                        <label key={`editar_${ctx}`} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,border:'1px solid #e2e8f0',background:form.permissoes[`editar_${ctx}`]?'#f0fdf4':'#fff',cursor:'pointer',fontSize:13,color:'#374151'}}>
+                          <input
+                            type="checkbox"
+                            checked={!!form.permissoes[`editar_${ctx}`]}
+                            onChange={e => setPerm(`editar_${ctx}`, e.target.checked)}
+                            style={{accentColor:'#059669',width:15,height:15}}
+                          />
+                          Editar {ctx.charAt(0).toUpperCase()+ctx.slice(1)}
                         </label>
-                      ))}
-                    </div>
+                        <label key={`excluir_${ctx}`} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,border:'1px solid #e2e8f0',background:form.permissoes[`excluir_${ctx}`]?'#fff1f2':'#fff',cursor:'pointer',fontSize:13,color:'#374151'}}>
+                          <input
+                            type="checkbox"
+                            checked={!!form.permissoes[`excluir_${ctx}`]}
+                            onChange={e => setPerm(`excluir_${ctx}`, e.target.checked)}
+                            style={{accentColor:'#dc2626',width:15,height:15}}
+                          />
+                          Excluir {ctx.charAt(0).toUpperCase()+ctx.slice(1)}
+                        </label>
+                      </>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {isColaborador && (
-                <div style={{fontSize:11,color:'#9ca3af',marginBottom:14}}>
-                  💡 Admin e Gestor têm acesso completo automaticamente.
+              {erro && (
+                <div style={{background:'#fee2e2',color:'#991b1b',borderRadius:8,padding:'8px 12px',fontSize:13,marginBottom:12}}>
+                  {erro}
                 </div>
               )}
 
-              {erro && <div style={{background:'#fee2e2',color:'#991b1b',borderRadius:8,padding:'9px 12px',fontSize:13,marginBottom:4}}>{erro}</div>}
-            </div>
-
-            <div style={{padding:'12px 22px',borderTop:'1px solid #e5e7eb',display:'flex',justifyContent:'flex-end',gap:8,position:'sticky',bottom:0,background:'#fff'}}>
-              <button onClick={() => setModal(false)} style={{background:'transparent',border:'1px solid #e5e7eb',borderRadius:7,padding:'8px 16px',fontSize:13,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={salvar} style={{background:'#1a56db',color:'#fff',border:'none',borderRadius:8,padding:'8px 18px',fontSize:13,fontWeight:500,cursor:'pointer'}}>Salvar</button>
+              <div style={{display:'flex',gap:10,justifyContent:'flex-end'}}>
+                <button onClick={() => setModal(false)} style={{padding:'8px 18px',borderRadius:8,border:'1px solid #e5e7eb',background:'#fff',fontSize:13,cursor:'pointer',color:'#374151'}}>Cancelar</button>
+                <button onClick={salvar} style={{padding:'8px 18px',borderRadius:8,background:'#1a56db',color:'#fff',border:'none',fontSize:13,fontWeight:500,cursor:'pointer'}}>Salvar</button>
+              </div>
             </div>
           </div>
         </div>
