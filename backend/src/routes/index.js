@@ -119,10 +119,8 @@ r.put('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res
     const lat      = (req.body.lat !== '' && req.body.lat != null) ? parseFloat(req.body.lat) : null;
     const lng      = (req.body.lng !== '' && req.body.lng != null) ? parseFloat(req.body.lng) : null;
     const regioes  = Array.isArray(req.body.regioes) ? req.body.regioes : (req.body.regioes ? String(req.body.regioes).split(',').map(r=>r.trim()) : []);
-
     const raio = (req.body.raio !== '' && req.body.raio != null) ? parseFloat(req.body.raio) : null;
     console.log(`[PUT /tecnicos/${id}]`, { nome, codigo, status, lat, lng, regioes });
-
     const { rows } = await pool.query(
       `UPDATE tecnicos
        SET nome     = COALESCE($1, nome),
@@ -137,7 +135,6 @@ r.put('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res
        RETURNING *`,
       [nome, codigo, telefone, regioes, status, lat, lng, raio, id]
     );
-
     if (!rows.length) {
       console.error(`Técnico id=${id} não encontrado no banco`);
       return res.status(404).json({ erro: `Técnico id=${id} não encontrado` });
@@ -154,6 +151,45 @@ r.delete('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, 
     await pool.query('UPDATE tecnicos SET ativo=FALSE WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Técnico desativado' });
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
+});
+
+// ── EQUIPAMENTOS ──────────────────────────────────────
+r.get('/equipamentos', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM equipamentos WHERE ativo=TRUE ORDER BY marca, modelo');
+    res.json(rows);
+  } catch { res.status(500).json({ erro: 'Erro ao listar equipamentos' }); }
+});
+
+r.post('/equipamentos', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+  try {
+    const { marca, modelo, plano, wifi, diferencial } = req.body;
+    if (!marca || !modelo) return res.status(400).json({ erro: 'Marca e modelo obrigatórios' });
+    const { rows } = await pool.query(
+      'INSERT INTO equipamentos (marca, modelo, plano, wifi, diferencial) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [marca, modelo, plano, wifi, diferencial]
+    );
+    res.status(201).json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao criar equipamento' }); }
+});
+
+r.put('/equipamentos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+  try {
+    const { marca, modelo, plano, wifi, diferencial } = req.body;
+    const { rows } = await pool.query(
+      'UPDATE equipamentos SET marca=$1, modelo=$2, plano=$3, wifi=$4, diferencial=$5 WHERE id=$6 RETURNING *',
+      [marca, modelo, plano, wifi, diferencial, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ erro: 'Não encontrado' });
+    res.json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao atualizar equipamento' }); }
+});
+
+r.delete('/equipamentos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+  try {
+    await pool.query('UPDATE equipamentos SET ativo=FALSE WHERE id=$1', [req.params.id]);
+    res.json({ mensagem: 'Equipamento removido' });
+  } catch { res.status(500).json({ erro: 'Erro ao remover equipamento' }); }
 });
 
 // ── GUIAS ─────────────────────────────────────────────
@@ -175,45 +211,21 @@ r.get('/guias/:slug', autenticar, async (req, res) => {
 r.put('/guias/:id/imagem', autenticar, autorizar('admin'), async (req, res) => {
   try {
     const { step_index, img_index, url } = req.body;
-    const slug = req.params.id; // aceita id ou slug
-
-    // Busca por id numérico ou por slug
+    const slug = req.params.id;
     const isNum = /^\d+$/.test(slug);
     const query = isNum
       ? 'SELECT id, conteudo FROM guias WHERE id=$1'
       : 'SELECT id, conteudo FROM guias WHERE slug=$1';
     const { rows } = await pool.query(query, [slug]);
-
     if (!rows.length) return res.status(404).json({ erro: 'Guia não encontrado' });
-
     const { id, conteudo } = rows[0];
-
-    // Garante que steps existe
     if (!conteudo.steps) conteudo.steps = [];
-
-    // Garante que o step existe
-    if (!conteudo.steps[step_index]) {
-      return res.status(400).json({ erro: 'Step não encontrado' });
-    }
-
-    // Garante que imgs é array
-    if (!Array.isArray(conteudo.steps[step_index].imgs)) {
-      conteudo.steps[step_index].imgs = [];
-    }
-
-    // Salva a URL na posição correta
+    if (!conteudo.steps[step_index]) return res.status(400).json({ erro: 'Step não encontrado' });
+    if (!Array.isArray(conteudo.steps[step_index].imgs)) conteudo.steps[step_index].imgs = [];
     const imgs = conteudo.steps[step_index].imgs;
-    if (img_index !== undefined && img_index < imgs.length) {
-      imgs[img_index] = url;
-    } else {
-      imgs.push(url);
-    }
-
-    await pool.query(
-      'UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2',
-      [JSON.stringify(conteudo), id]
-    );
-
+    if (img_index !== undefined && img_index < imgs.length) imgs[img_index] = url;
+    else imgs.push(url);
+    await pool.query('UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2', [JSON.stringify(conteudo), id]);
     console.log(`[IMG SALVA] guia=${slug} step=${step_index} img=${img_index} url=${url}`);
     res.json({ mensagem: 'Imagem salva no banco com sucesso', url });
   } catch (err) {
@@ -306,91 +318,12 @@ function overpassToGeojson(elements) {
   return null;
 }
 
-function centerOf(geometry) {
-  try {
-    const coords = geometry.type === 'Polygon'
-      ? geometry.coordinates[0]
-      : geometry.coordinates[0][0];
-    const lat = coords.reduce((s,[,y])=>s+y,0)/coords.length;
-    const lng = coords.reduce((s,[x])=>s+x,0)/coords.length;
-    return { center_lat:lat, center_lng:lng };
-  } catch { return {}; }
-}
-
-function nominalizar(nome) {
-  // Mantém acentos — só faz title case
-  return nome.trim().split(' ')
-    .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-    .join(' ');
-}
-
-// Restaura acentos comuns do português
-function restaurarAcentos(nome) {
-  const mapa = {
-    'Corbelia':'Corbélia', 'Cafelandia':'Cafelândia', 'Guaraniacu':'Guaraniaçu',
-    'Catanduvas':'Catanduvas', 'Boa Vista Da Aparecida':'Boa Vista da Aparecida',
-    'Tres Barras Do Parana':'Três Barras do Paraná', 'Ceu Azul':'Céu Azul',
-    'Formosa Do Oeste':'Formosa do Oeste', 'Santa Lucia':'Santa Lúcia',
-    'Juvinopolis':'Juvinópolis', 'Lindoeste':'Lindoeste',
-    'Santo Inacio':'Santo Inácio', 'Belem':'Belém',
-  };
-  return mapa[nome] || nome;
-}
-
-const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
-
-// Busca no Nominatim e retorna o melhor resultado com polígono
-async function nominatimBuscar(query, filtro) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&polygon_geojson=1&limit=5&addressdetails=1`;
-    const r2  = await httpsGet(url, H, 7000);
-    if (r2.status !== 200 || !r2.data?.length) return null;
-
-    for (const item of r2.data) {
-      const lat = parseFloat(item.lat);
-      const lng = parseFloat(item.lon);
-      if (filtro && !filtro(item, lat, lng)) continue;
-
-      const geom = item.geojson;
-      if (geom && (geom.type==='Polygon' || geom.type==='MultiPolygon')) {
-        return { geometry:geom, center_lat:lat, center_lng:lng, display_name:item.display_name, type:item.type };
-      }
-      // Tem ponto mas não polígono — continua procurando
-    }
-  } catch(e) { console.log(`[GEO Nominatim erro] ${e.message}`); }
-  return null;
-}
-
-// Cache em memória (sessão) + banco de dados (permanente)
-const geoMemCache = {};
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const geoServerCache = {}; // cache em memória para evitar buscas repetidas
-
-// IDs reais do OSM para municípios do Paraná (admin_level=8)
-// Fonte: openstreetmap.org
-const OSM_IDS = {
-  // Municípios da região de Cascavel
-  'Cascavel':     298173,
-  'Corbélia':     298085,
-  'Cafelândia':   298063,
-  'Guaraniaçu':   298117,
-  'Catanduvas':   298072,
-  'Nova Aurora':  298155,
-  'Ibema':        298122,
-  'Lindoeste':    298136,
-  'Céu Azul':     298075,
-  'Campo Bonito': 298065,
-  'Santa Lúcia':  298186,
-  'Três Barras do Paraná': 298209,
-  'Boa Vista da Aparecida': 298053,
-  'Formosa do Oeste': 298107,
-  'São João d\'Oeste': 298191,
-};
+const geoServerCache = {};
 
 r.get('/geo/regiao', autenticar, async (req, res) => {
   const { nome } = req.query;
   if (!nome) return res.status(400).json({ erro:'Nome obrigatório' });
-
   if (geoServerCache[nome]) return res.json(geoServerCache[nome]);
 
   const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
@@ -402,10 +335,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     } catch { return {}; }
   }
 
-  // OSM Relation IDs confirmados para bairros de Cascavel
-  // OSM IDs confirmados pelo usuário (relation/way/node)
   const OSM_IDS = {
-    // Relations (têm polígono real)
     'Floresta':       { id:6727084,  type:'relation' },
     'Periolo':        { id:6727073,  type:'relation' },
     'Morumbi':        { id:6727086,  type:'relation' },
@@ -432,7 +362,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Canada':                { id:6727081,   type:'relation' },
     'Recanto Tropical':      { id:6727079,   type:'relation' },
     'Tropical':              { id:6727079,   type:'relation' },
-    // Ways (têm polígono via way)
     'Alto Alegre':           { id:454903448, type:'way' },
     'Parque São Paulo':      { id:454903443, type:'way' },
     'Parque Sao Paulo':      { id:454903443, type:'way' },
@@ -442,12 +371,10 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Pioneiros Catarinenses':{ id:454903437, type:'way' },
     'Guarujá':               { id:454903439, type:'way' },
     'Guaruja':               { id:454903439, type:'way' },
-    // Bounding box baseado nos centros do Google Maps
     'Brasmadeira':    { type:'bbox', minLat:-24.9353, maxLat:-24.9093, minLng:-53.4603, maxLng:-53.4343 },
     'Santo Onofre':   { type:'bbox', minLat:-24.9858, maxLat:-24.9558, minLng:-53.5123, maxLng:-53.4823 },
     'Centro':         { type:'bbox', minLat:-24.9800, maxLat:-24.9300, minLng:-53.4893, maxLng:-53.4393 },
     'Vila Tolentino': { type:'bbox', minLat:-24.9833, maxLat:-24.9633, minLng:-53.4883, maxLng:-53.4483 },
-    // XIV de Novembro e Santo Inácio não têm polígono no OSM
   };
 
   const n  = nome.trim().split(' ').map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join(' ');
@@ -461,10 +388,8 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   const nAcento = mapAcentos[nA] || n;
   console.log(`[GEO] "${nAcento}"`);
 
-  // 1) Bairros com OSM ID conhecido — busca direta, sem procurar por nome
   const osmEntry = OSM_IDS[nAcento] || OSM_IDS[n] || OSM_IDS[nome];
   if (osmEntry) {
-    // BBox — monta polígono retangular com as coordenadas
     if (osmEntry.type === 'bbox') {
       const { minLat, maxLat, minLng, maxLng } = osmEntry;
       const geom = { type:'Polygon', coordinates:[[
@@ -473,14 +398,11 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
       const c = { center_lat:(minLat+maxLat)/2, center_lng:(minLng+maxLng)/2 };
       const result = { geometry:geom, ...c, display_name:nAcento, source:'bbox' };
       geoServerCache[nome] = result;
-      console.log(`[GEO bbox] "${nAcento}" → retângulo aproximado`);
       return res.json(result);
     }
-    // Nodes não têm polígono — retorna só o ponto central
     if (osmEntry.type === 'node') {
       const result = { geometry:null, center_lat:osmEntry.lat, center_lng:osmEntry.lng, display_name:nAcento, source:'osm-node' };
       geoServerCache[nome] = result;
-      console.log(`[GEO OSM node] "${nAcento}" → ponto`);
       return res.json(result);
     }
     try {
@@ -501,14 +423,12 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
           const c = centerOf(geom);
           const result = { geometry:geom, ...c, display_name:nAcento, source:'osm-id' };
           geoServerCache[nome] = result;
-          console.log(`[GEO OSM ID] "${nAcento}" → polígono direto`);
           return res.json(result);
         }
       }
     } catch(e) { console.log(`[GEO OSM ID erro] ${e.message}`); }
   }
 
-  // 2) Cidades — Nominatim buscando município
   const CASCAVEL = { lat:-24.9558, lng:-53.4548 };
   async function nominatim(query, filtro) {
     try {
@@ -522,7 +442,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
         const geom = item.geojson;
         if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) {
           const c = centerOf(geom);
-          console.log(`[GEO Nominatim OK] "${nAcento}" → ${item.display_name}`);
           return { geometry:geom, ...c, display_name:item.display_name };
         }
         return { geometry:null, center_lat:lat, center_lng:lng, display_name:item.display_name };
@@ -555,11 +474,8 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   res.status(404).json({ erro:'Região não encontrada' });
 });
 
-
 // ── AUTOCOMPLETE DE REGIÕES ──────────────────────────
-// Base de bairros de Cascavel (fallback quando Nominatim não responde)
 const BAIRROS_CASCAVEL = [
-  // Lista oficial dos 32 bairros de Cascavel + extras
   'Centro','Cancelli','Country','São Cristóvão','Pacaembu',
   'Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho',
   'Jardim União','Universitário','XIV de Novembro','14 de Novembro',
@@ -567,9 +483,8 @@ const BAIRROS_CASCAVEL = [
   'Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz',
   'Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade',
   'Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira',
-  // Extras comuns
   'Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda',
-  'Santo Inácio','Bairro São Cristóvão','Cascavel Velho',
+  'Santo Inácio','Bairro São Cristóvão',
 ];
 
 const CIDADES_PR = [
@@ -581,107 +496,66 @@ const CIDADES_PR = [
 r.get('/geo/autocomplete', autenticar, async (req, res) => {
   const { q } = req.query;
   if (!q || q.length < 2) return res.json([]);
-
   const n   = q.trim().toLowerCase();
   const H   = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
-
-  // Remove acentos para comparação
   const semAcentos = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const nSA = semAcentos(n);
-
-  // 1) Filtra lista local primeiro (instantâneo, sem API)
-  const bairrosMatch = BAIRROS_CASCAVEL
-    .filter(b => semAcentos(b).includes(nSA))
-    .map(b => ({ nome:b, display:`${b}, Cascavel - PR`, tipo:'Bairro · Cascavel' }));
-
-  const cidadesMatch = CIDADES_PR
-    .filter(c => semAcentos(c).includes(nSA))
-    .map(c => ({ nome:c, display:`${c}, Paraná`, tipo:'Cidade · PR' }));
-
+  const bairrosMatch = BAIRROS_CASCAVEL.filter(b => semAcentos(b).includes(nSA)).map(b => ({ nome:b, display:`${b}, Cascavel - PR`, tipo:'Bairro · Cascavel' }));
+  const cidadesMatch = CIDADES_PR.filter(c => semAcentos(c).includes(nSA)).map(c => ({ nome:c, display:`${c}, Paraná`, tipo:'Cidade · PR' }));
   const local = [...bairrosMatch, ...cidadesMatch].slice(0, 8);
-
-  // Se achou algo local, retorna imediatamente (sem chamar Nominatim)
-  if (local.length > 0) {
-    console.log(`[AUTOCOMPLETE local] "${q}" → ${local.length} resultados`);
-    return res.json(local);
-  }
-
-  // 2) Se não achou local, tenta Nominatim
-  console.log(`[AUTOCOMPLETE nominatim] "${q}"...`);
+  if (local.length > 0) return res.json(local);
   try {
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Paraná')}&format=json&limit=8&addressdetails=1&countrycodes=br`;
     const r2  = await httpsGet(url, H, 5000);
     if (r2.status !== 200 || !r2.data?.length) return res.json([]);
-
     const resultados = [];
     for (const item of r2.data) {
-      const lat = parseFloat(item.lat);
-      const lng = parseFloat(item.lon);
+      const lat = parseFloat(item.lat), lng = parseFloat(item.lon);
       const noParana = lat > -27 && lat < -22 && lng > -55 && lng < -48;
       if (!noParana) continue;
-
-      const addresstype    = item.addresstype || item.type || '';
-      const distCascavel   = Math.sqrt(Math.pow(lat-(-24.9558),2)+Math.pow(lng-(-53.4548),2))*111;
-      const nomePrincipal  = item.name || (item.display_name||'').split(',')[0].trim();
-      const display        = (item.display_name||'').split(',').slice(0,2).join(',').trim();
-
+      const addresstype  = item.addresstype || item.type || '';
+      const distCascavel = Math.sqrt(Math.pow(lat-(-24.9558),2)+Math.pow(lng-(-53.4548),2))*111;
+      const nomePrincipal = item.name || (item.display_name||'').split(',')[0].trim();
+      const display = (item.display_name||'').split(',').slice(0,2).join(',').trim();
       let tipo = distCascavel < 20 ? 'Bairro · Cascavel' : 'Cidade · PR';
       if (['city','town','municipality'].includes(addresstype)) tipo = 'Cidade · PR';
-
       if (!resultados.find(r => r.nome === nomePrincipal))
         resultados.push({ nome:nomePrincipal, display, tipo, distCascavel:Math.round(distCascavel) });
     }
-
     resultados.sort((a,b) => (a.tipo.includes('Cascavel')?0:1) - (b.tipo.includes('Cascavel')?0:1) || a.distCascavel-b.distCascavel);
-    console.log(`[AUTOCOMPLETE nominatim] → ${resultados.length} resultados`);
     res.json(resultados.slice(0,6));
-  } catch (e) {
-    console.log(`[AUTOCOMPLETE erro] ${e.message}`);
-    res.json([]);
-  }
+  } catch (e) { res.json([]); }
 });
 
 // ── PDF RECICLAGEM ────────────────────────────────────
 const https2 = require('https');
 const crypto = require('crypto');
+const fs   = require('fs');
+const path = require('path');
+const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 
 function cloudinaryUpload(fileBuffer, fileName) {
   return new Promise((resolve, reject) => {
     const CLOUD_NAME = 'dinfzopjh';
     const API_KEY    = '754394543815596';
     const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
-
     const timestamp = Math.floor(Date.now() / 1000);
     const folder    = 'dipelnet/manuais';
     const sigStr    = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
     const signature = crypto.createHash('sha1').update(sigStr).digest('hex');
-
     const boundary = '----CloudinaryBoundary' + Date.now();
     const parts = [];
     const addField = (name, value) => {
-      parts.push(Buffer.from(`--${boundary}
-Content-Disposition: form-data; name="${name}"
-
-${value}
-`));
+      parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
     };
-
     addField('api_key', API_KEY);
     addField('timestamp', timestamp);
     addField('signature', signature);
     addField('folder', folder);
     addField('resource_type', 'raw');
-
-    parts.push(Buffer.from(`--${boundary}
-Content-Disposition: form-data; name="file"; filename="${fileName}"
-Content-Type: application/pdf
-
-`));
+    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${fileName}"\nContent-Type: application/pdf\n\n`));
     parts.push(fileBuffer);
-    parts.push(Buffer.from(`
---${boundary}--
-`));
-
+    parts.push(Buffer.from(`\n--${boundary}--\n`));
     const body = Buffer.concat(parts);
     const options = {
       hostname: 'api.cloudinary.com',
@@ -689,7 +563,6 @@ Content-Type: application/pdf
       method: 'POST',
       headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
     };
-
     const req = https2.request(options, (res) => {
       let data = '';
       res.on('data', c => data += c);
@@ -707,7 +580,6 @@ Content-Type: application/pdf
   });
 }
 
-// ── PDF RECICLAGEM ────────────────────────────────────
 r.get('/config/reciclagem-pdf', autenticar, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT valor FROM configuracoes WHERE chave='reciclagem_pdf_url' LIMIT 1");
@@ -718,18 +590,10 @@ r.get('/config/reciclagem-pdf', autenticar, async (req, res) => {
 r.post('/config/reciclagem-pdf', autenticar, autorizar('admin','gestor'), async (req, res) => {
   try {
     const { url } = req.body;
-    await pool.query(`
-      INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1)
-      ON CONFLICT (chave) DO UPDATE SET valor = $1
-    `, [url]);
+    await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
     res.json({ ok: true });
   } catch { res.status(500).json({ erro: 'Erro ao salvar URL' }); }
 });
-
-// Serve PDF local — salvo na pasta uploads do backend
-const fs   = require('fs');
-const path = require('path');
-const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 
 r.get('/config/reciclagem-pdf-proxy', (req, res) => {
   if (!fs.existsSync(PDF_PATH)) return res.status(404).send('PDF não encontrado. Faça o upload pelo sistema.');
@@ -739,7 +603,6 @@ r.get('/config/reciclagem-pdf-proxy', (req, res) => {
   fs.createReadStream(PDF_PATH).pipe(res);
 });
 
-// Remove o PDF local
 r.delete('/config/reciclagem-remover', autenticar, autorizar('admin','gestor'), (req, res) => {
   try {
     if (fs.existsSync(PDF_PATH)) fs.unlinkSync(PDF_PATH);
@@ -747,11 +610,9 @@ r.delete('/config/reciclagem-remover', autenticar, autorizar('admin','gestor'), 
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
-// Upload do PDF — salva localmente no servidor
 r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'), (req, res) => {
   const uploadsDir = path.join(__dirname, '../../uploads');
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
   const chunks = [];
   req.on('data', c => chunks.push(c));
   req.on('end', () => {
@@ -763,7 +624,6 @@ r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'
   req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
-// Upload PDF via backend (bypass do preset unsigned)
 r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), async (req, res) => {
   try {
     const chunks = [];
@@ -773,12 +633,7 @@ r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), asy
         const buffer   = Buffer.concat(chunks);
         const fileName = req.headers['x-filename'] || 'manual.pdf';
         const url      = await cloudinaryUpload(buffer, fileName);
-
-        await pool.query(`
-          INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1)
-          ON CONFLICT (chave) DO UPDATE SET valor = $1
-        `, [url]);
-
+        await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
         res.json({ url });
       } catch(e) {
         console.error('[PDF Upload]', e.message);

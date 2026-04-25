@@ -17,6 +17,19 @@ const migrate = async () => {
     `);
 
     await client.query(`
+  CREATE TABLE IF NOT EXISTS equipamentos (
+    id          SERIAL PRIMARY KEY,
+    marca       VARCHAR(100) NOT NULL,
+    modelo      VARCHAR(100) NOT NULL,
+    plano       VARCHAR(100),
+    wifi        VARCHAR(100),
+    diferencial TEXT,
+    ativo       BOOLEAN DEFAULT TRUE,
+    criado_em   TIMESTAMP DEFAULT NOW()
+  );
+`);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id            SERIAL PRIMARY KEY,
         nome          VARCHAR(150) NOT NULL,
