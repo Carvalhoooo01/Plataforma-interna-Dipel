@@ -10,6 +10,20 @@ const LS_KEY  = 'dp_guia_imgs';
 const loadImgs = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)||'{}'); } catch { return {}; } };
 const saveImgs = (d) => localStorage.setItem(LS_KEY, JSON.stringify(d));
 
+const CHECKLIST_ITEMS = [
+  { id:1,  texto: 'Foto do local do equipamento' },
+  { id:2,  texto: 'Teste de velocidade (print)' },
+  { id:3,  texto: 'IPv6 funcionando' },
+  { id:4,  texto: 'Termo impresso com assinatura do cliente' },
+  { id:5,  texto: 'PingTools — Análise de Espectro' },
+  { id:6,  texto: 'Código do cliente registrado' },
+  { id:7,  texto: 'Foto do PDO (mostrando numeração do PDO)' },
+  { id:8,  texto: 'Metragem do cabo registrada' },
+  { id:9,  texto: 'Foto do PDO (mostrando sinal e porta utilizada)' },
+  { id:10, texto: 'Foto do PDO (mostrando plaqueta e porta utilizada)' },
+  { id:11, texto: 'Foto da fachada (residência, empresa ou estabelecimento)' },
+];
+
 const CONTEUDO_LOCAL = {
   onu02b:{
     badge:'bb', badgeText:'9 passos',
@@ -34,7 +48,7 @@ const CONTEUDO_LOCAL = {
       {titulo:'Localizar o cliente no GPON ONU',descricao:'iManager U2000 → GPON Management → GPON ONU. com o botão direito no cliente você seleciona a opção "BIND GENERAL ONT VAS PROFILE".',tip:'ONT-BRIDGE-2020 é o padrão para modo bridge na Dipelnet.',imgs:[null]},
       {titulo:'Clicar na seta ">>17"',descricao:'Parte inferior da tela → clique na setinha ">>17" ou com o botão direito no cliente redirecione ate a aba SERVICE PORT INFO',tip:null,imgs:[null]},
       {titulo:'SERVICE PORT INFO',descricao:'Com botão direito clique em ADD -> CONNECTION TYPE selecione a opção (LAN-ONT) -> coloque a VLAN ID da OLT que esta autenticando -> USER VLAN: 10',tip:null,imgs:[null]},
-      {titulo:'CURRENT ONU: UNI PORT INFO',descricao:'Selecionar como botão direito a primeira porta ETH mostrado a imagem a baixo -> MODIFY".',imgs:[null]},
+      {titulo:'CURRENT ONU: UNI PORT INFO',descricao:'Selecionar como botão direito a primeira porta ETH mostrado a imagem a baixo -> MODIFY".',tip:null,imgs:[null]},
       {titulo:'MODIFY...',descricao:'Selecione Modify..',tip:null,imgs:[null]},
       {titulo:'MODIFY',descricao:'no modify vai ser realizado somente uma alteração que sera do DEFAULT VLAN ID(1-4095), voce deve colocar 10 -> OK',tip:null,imgs:[null]},
       {titulo:'Confirmar ativação no IXC',descricao:'Verifique no IXC se o cliente autenticou. Em modo bridge o PPPoE é configurado no roteador do cliente.',tip:'Em caso de falha, verifique se o VLAN ID confere com a VLAN da OLT.',imgs:[]},
@@ -75,9 +89,9 @@ const GUIAS_LOCAL = [
 ];
 
 const CAT = {
-  'Ativação': 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
-  'Telefonia': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
-  'Bridge':   'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
+  'Ativação':   'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
+  'Telefonia':  'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  'Bridge':     'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
   'Instalação': 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300',
 };
 const BC = {
@@ -126,12 +140,42 @@ function Gallery({imgs, stepIdx, isAdmin, onUpload, onRemove}) {
   );
 }
 
+function ChecklistView() {
+  return (
+    <div className="p-5 lg:p-6">
+      <div className="flex gap-2.5 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 text-sm mb-5">
+        <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>Itens obrigatórios a serem registrados após toda instalação. Lembre-se: sem registros, sem comprovação.</span>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {CHECKLIST_ITEMS.map((item, idx) => (
+          <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0">
+              {idx + 1}
+            </div>
+            <span className="text-sm text-gray-800 dark:text-gray-200 flex-1">{item.texto}</span>
+            <svg className="w-4 h-4 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs leading-relaxed">
+        <strong>⚠️ Atenção:</strong> Em caso de irregularidade ou reclamação do cliente, somente os registros fotográficos servirão como comprovação. Sem fotos, não há defesa. Dúvidas, falar no PV.
+      </div>
+    </div>
+  );
+}
+
 export default function Guias() {
   const {temRole}        = useAuth();
   const [guias,setGuias] = useState([]);
   const [busca,setBusca] = useState('');
   const [atual,setAtual] = useState(null);
   const [cont,setCont]   = useState(null);
+  const [aba,setAba]     = useState('guia');
 
   useEffect(() => {
     api.get('/guias').then(r => setGuias(r.data.length ? r.data : GUIAS_LOCAL)).catch(() => setGuias(GUIAS_LOCAL));
@@ -139,6 +183,7 @@ export default function Guias() {
 
   const abrir = async (g) => {
     setAtual(g);
+    setAba('guia');
     const local = CONTEUDO_LOCAL[g.slug];
     const base  = JSON.parse(JSON.stringify(local || {}));
     try {
@@ -206,9 +251,8 @@ export default function Guias() {
     const steps = cont.steps || [];
     return (
       <div>
-        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
-          <button onClick={() => { setAtual(null); setCont(null); }} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
+          <button onClick={() => { setAtual(null); setCont(null); setAba('guia'); }} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
           <span>/</span>
           <span className="text-gray-900 dark:text-gray-100 font-medium">{atual.titulo}</span>
         </div>
@@ -220,47 +264,67 @@ export default function Guias() {
             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[cont.badge]||BC.bb}`}>{cont.badgeText}</span>
           </div>
 
-          <div className="p-5 lg:p-6">
-            {/* Alerta azul */}
-            {cont.alerta && (
-              <div className="flex gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm mb-5">
-                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                {cont.alerta}
-              </div>
-            )}
-            {/* Aviso amarelo */}
-            {cont.aviso && (
-              <div className="flex gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-300 mb-4">
-                {cont.aviso}
-              </div>
-            )}
-
-            {/* Steps */}
-            {steps.map((s, i) => (
-              <div key={i} className={`flex gap-4 py-4 ${i < steps.length-1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
-                <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i+1}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{s.titulo}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>
-                  {s.tip && (
-                    <div className="flex gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-lg p-2.5 text-xs mt-2.5 leading-relaxed">
-                      <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                      {s.tip}
-                    </div>
-                  )}
-                  <Gallery imgs={s.imgs||[]} stepIdx={i} isAdmin={temRole('admin')} onUpload={upload} onRemove={remover}/>
-                </div>
-              </div>
-            ))}
-
-            {/* Aviso de perigo */}
-            {cont.aviso_perigo && (
-              <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm mt-4">
-                <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                {cont.aviso_perigo}
-              </div>
-            )}
+          {/* Abas */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setAba('guia')}
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${aba === 'guia'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              📋 Guia
+            </button>
+            <button
+              onClick={() => setAba('checklist')}
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${aba === 'checklist'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+            >
+              ✅ Checklist pós-instalação
+            </button>
           </div>
+
+          {/* Aba Guia */}
+          {aba === 'guia' && (
+            <div className="p-5 lg:p-6">
+              {cont.alerta && (
+                <div className="flex gap-2.5 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm mb-5">
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  {cont.alerta}
+                </div>
+              )}
+              {cont.aviso && (
+                <div className="flex gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-300 mb-4">
+                  {cont.aviso}
+                </div>
+              )}
+              {steps.map((s, i) => (
+                <div key={i} className={`flex gap-4 py-4 ${i < steps.length-1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
+                  <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i+1}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{s.titulo}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>
+                    {s.tip && (
+                      <div className="flex gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-lg p-2.5 text-xs mt-2.5 leading-relaxed">
+                        <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        {s.tip}
+                      </div>
+                    )}
+                    <Gallery imgs={s.imgs||[]} stepIdx={i} isAdmin={temRole('admin')} onUpload={upload} onRemove={remover}/>
+                  </div>
+                </div>
+              ))}
+              {cont.aviso_perigo && (
+                <div className="flex gap-2.5 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm mt-4">
+                  <svg className="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {cont.aviso_perigo}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Aba Checklist */}
+          {aba === 'checklist' && <ChecklistView />}
         </div>
       </div>
     );
@@ -269,14 +333,12 @@ export default function Guias() {
   // ── LISTA ──
   return (
     <div>
-      {/* Busca */}
       <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 mb-4">
         <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar guia..."
           className="border-none outline-none text-sm flex-1 bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400"/>
       </div>
 
-      {/* Cards */}
       <div className="flex flex-col gap-3">
         {guias
           .filter(g => g.titulo.toLowerCase().includes(busca.toLowerCase()) || (g.categoria||'').toLowerCase().includes(busca.toLowerCase()))
