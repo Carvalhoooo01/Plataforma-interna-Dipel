@@ -734,7 +734,7 @@ const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 r.get('/config/reciclagem-pdf-proxy', (req, res) => {
   if (!fs.existsSync(PDF_PATH)) return res.status(404).send('PDF não encontrado. Faça o upload pelo sistema.');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'inline; filename="reciclagem.pdf"');
+  res.setHeader('Content-Disposition', 'inline; filename="Reciclagem.pdf"');
   res.setHeader('Cache-Control', 'public, max-age=3600');
   fs.createReadStream(PDF_PATH).pipe(res);
 });
