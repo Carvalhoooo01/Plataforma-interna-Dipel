@@ -85,14 +85,6 @@ const migrate = async () => {
       ON CONFLICT (email) DO NOTHING;
     `, [hash]);
 
-    // Técnico inicial
-    await client.query(`
-      INSERT INTO tecnicos (nome, codigo, regioes, status, lat, lng, setor_id)
-      VALUES ('Bruno Guilherme Vieira','T001',ARRAY['Morumbi','Cascavel'],'Disponível',
-        -24.928906242153833,-53.405179157937106,(SELECT id FROM setores WHERE nome='Campo'))
-      ON CONFLICT (codigo) DO NOTHING;
-    `);
-
     // Guias com conteúdo completo
     const guiasData = [
       {
@@ -185,6 +177,12 @@ const migrate = async () => {
       `, [g.slug, g.titulo, g.descricao, g.categoria, JSON.stringify(g.conteudo)]);
     }
 
+    
+    // Colunas e tabelas extras
+    await client.query(`ALTER TABLE tecnicos ADD COLUMN IF NOT EXISTS raio DOUBLE PRECISION;`);
+    await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{}';`);
+    await client.query(`CREATE TABLE IF NOT EXISTS configuracoes (chave VARCHAR(100) PRIMARY KEY, valor TEXT);`);
+
     await client.query('COMMIT');
     console.log('✅ Migration concluída!');
     console.log('📧 Admin: admin@dipelnet.com.br');
@@ -199,3 +197,7 @@ const migrate = async () => {
 };
 
 migrate();
+
+
+
+
