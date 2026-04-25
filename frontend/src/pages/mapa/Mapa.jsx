@@ -4,6 +4,7 @@ import { useDark } from '../../contexts/ThemeContext';
 import { tk } from '../../utils/theme';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+const API_URL  = import.meta.env.VITE_API_URL || '';
 
 const ST = {
   'Disponível': { bg:'#059669', badge:'#d1fae5', text:'#065f46' },
@@ -54,7 +55,7 @@ function buscarRegiao(nome) {
     if (!ehBairro) { const r = await buscarIBGE(nome); if (r) { geoCache[nome]=r; return r; } }
     try {
       const token = localStorage.getItem('dp_token');
-      const res   = await fetch('/api/geo/regiao?nome='+encodeURIComponent(nome), { headers:{Authorization:'Bearer '+token}, signal:AbortSignal.timeout(12000) });
+      const res   = await fetch(API_URL+'/api/geo/regiao?nome='+encodeURIComponent(nome), { headers:{Authorization:'Bearer '+token}, signal:AbortSignal.timeout(12000) });
       const data  = res.ok ? await res.json() : null;
       geoCache[nome] = data; return data;
     } catch { geoCache[nome]=null; return null; }
@@ -368,7 +369,7 @@ export default function Mapa() {
           </div>
         )}
 
-        {/* Tooltip — sempre escuro, não muda com o tema */}
+        {/* Tooltip — sempre escuro */}
         <div
           ref={tooltipEl}
           onMouseEnter={() => { if(tooltipEl.current){ tooltipEl.current._over=true; clearTimeout(tooltipEl.current._hideTimer); }}}
