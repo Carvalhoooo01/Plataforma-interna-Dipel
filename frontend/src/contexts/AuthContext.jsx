@@ -17,20 +17,20 @@ export function AuthProvider({ children }) {
   const [carregando, setCarreg] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('dp_token');
-    const salvo = localStorage.getItem('dp_usuario');
+    // sessionStorage é limpo ao fechar o navegador/aba
+    const token = sessionStorage.getItem('dp_token');
+    const salvo = sessionStorage.getItem('dp_usuario');
     if (token && salvo) {
       try {
         setUsuario(JSON.parse(salvo));
-        // Valida o token no backend — se inválido, faz logout
         api.get('/auth/me').catch(() => {
-          localStorage.removeItem('dp_token');
-          localStorage.removeItem('dp_usuario');
+          sessionStorage.removeItem('dp_token');
+          sessionStorage.removeItem('dp_usuario');
           setUsuario(null);
         });
       } catch {
-        localStorage.removeItem('dp_token');
-        localStorage.removeItem('dp_usuario');
+        sessionStorage.removeItem('dp_token');
+        sessionStorage.removeItem('dp_usuario');
       }
     }
     setCarreg(false);
@@ -38,15 +38,15 @@ export function AuthProvider({ children }) {
 
   const login = async (email, senha) => {
     const { data } = await api.post('/auth/login', { email, senha });
-    localStorage.setItem('dp_token',   data.token);
-    localStorage.setItem('dp_usuario', JSON.stringify(data.usuario));
+    sessionStorage.setItem('dp_token',   data.token);
+    sessionStorage.setItem('dp_usuario', JSON.stringify(data.usuario));
     setUsuario(data.usuario);
     return data.usuario;
   };
 
   const logout = () => {
-    localStorage.removeItem('dp_token');
-    localStorage.removeItem('dp_usuario');
+    sessionStorage.removeItem('dp_token');
+    sessionStorage.removeItem('dp_usuario');
     setUsuario(null);
   };
 
