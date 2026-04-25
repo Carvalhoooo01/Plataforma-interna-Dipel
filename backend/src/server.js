@@ -9,6 +9,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, _res, next) => { console.log(`[${req.method}] ${req.path}`); next(); });
