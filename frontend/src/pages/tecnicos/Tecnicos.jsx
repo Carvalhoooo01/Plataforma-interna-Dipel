@@ -79,10 +79,10 @@ function RegiaoInput({ valor, onChange, dark }) {
     if (!tags.includes(nome)) onChange([...tags, nome].join(', '));
     setBusca(''); setSugestoes([]); setAberto(false);
   };
-  const remover = (tag) => onChange(tags.filter(t => t !== tag).join(', '));
+  const removerTag = (tag) => onChange(tags.filter(t => t !== tag).join(', '));
   const keyDown = (e) => {
     if ((e.key==='Enter'||e.key===',') && busca.trim()) { e.preventDefault(); adicionar(busca.trim()); }
-    if (e.key==='Backspace' && !busca && tags.length) remover(tags[tags.length-1]);
+    if (e.key==='Backspace' && !busca && tags.length) removerTag(tags[tags.length-1]);
     if (e.key==='Escape') setAberto(false);
   };
 
@@ -93,8 +93,8 @@ function RegiaoInput({ valor, onChange, dark }) {
         {tags.map(tag => (
           <span key={tag} style={{ display:'inline-flex', alignItems:'center', gap:3, padding:'2px 8px 2px 10px', background:c.tagBg, color:c.tagColor, borderRadius:20, fontSize:12, fontWeight:500 }}>
             {tag}
-            <button type="button" onClick={e => { e.stopPropagation(); remover(tag); }}
-              style={{ background:'none', border:'none', cursor:'pointer', color: dark ? '#93c5fd' : '#93c5fd', fontSize:15, lineHeight:1, padding:'0 1px' }}>×</button>
+            <button type="button" onClick={e => { e.stopPropagation(); removerTag(tag); }}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#93c5fd', fontSize:15, lineHeight:1, padding:'0 1px' }}>×</button>
           </span>
         ))}
         <input id="reg-inp" value={busca}
@@ -131,7 +131,7 @@ function RegiaoInput({ valor, onChange, dark }) {
 }
 
 export default function Tecnicos() {
-  const { temRole } = useAuth();
+  const { temRole, podeEditar, podeExcluir } = useAuth();
   const dark = useDark();
   const c    = tk(dark);
 
@@ -141,6 +141,9 @@ export default function Tecnicos() {
   const [form, setForm]     = useState({ nome:'', codigo:'', telefone:'', regioes:'', status:'Disponível', lat:'', lng:'', raio:'' });
   const [erro, setErro]     = useState('');
   const [salvando, setSalv] = useState(false);
+
+  const podeEdit = temRole('admin','gestor') || podeEditar('tecnicos');
+  const podeExcl = temRole('admin','gestor') || podeExcluir('tecnicos');
 
   useEffect(() => { carregar(); }, []);
 
@@ -214,10 +217,14 @@ export default function Tecnicos() {
               <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:10 }}>
                 {(t.regioes||[]).map(r => <span key={r} style={{ fontSize:11, padding:'2px 7px', background:c.tagBg, color:c.tagColor, borderRadius:20, fontWeight:500 }}>{r}</span>)}
               </div>
-              {temRole('admin','gestor') && (
+              {(podeEdit || podeExcl) && (
                 <div style={{ display:'flex', gap:6, paddingTop:10, borderTop:`1px solid ${c.cardBorder}`, justifyContent:'flex-end' }}>
-                  <button onClick={() => abrirModal(t)} style={{ background:'transparent', border:`1px solid ${c.cardBorder}`, borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer', color:c.text }}>Editar</button>
-                  <button onClick={() => remover(t.id)} style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer' }}>Remover</button>
+                  {podeEdit && (
+                    <button onClick={() => abrirModal(t)} style={{ background:'transparent', border:`1px solid ${c.cardBorder}`, borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer', color:c.text }}>Editar</button>
+                  )}
+                  {podeExcl && (
+                    <button onClick={() => remover(t.id)} style={{ background:'#dc2626', color:'#fff', border:'none', borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer' }}>Remover</button>
+                  )}
                 </div>
               )}
             </div>
