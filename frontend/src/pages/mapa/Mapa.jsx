@@ -54,7 +54,7 @@ function buscarRegiao(nome) {
   const promise = (async () => {
     if (!ehBairro) { const r = await buscarIBGE(nome); if (r) { geoCache[nome]=r; return r; } }
     try {
-      const token = localStorage.getItem('dp_token');
+      const token = sessionStorage.getItem('dp_token');
       const res   = await fetch(API_URL+'/api/geo/regiao?nome='+encodeURIComponent(nome), { headers:{Authorization:'Bearer '+token}, signal:AbortSignal.timeout(12000) });
       const data  = res.ok ? await res.json() : null;
       geoCache[nome] = data; return data;
