@@ -6,6 +6,14 @@ const { autenticar, autorizar } = require('../middleware/auth');
 
 const r = express.Router();
 
+// Helper: verifica se usuário tem permissão específica
+const temPermissao = (usuario, permissao) => {
+  if (!usuario) return false;
+  if (['admin','gestor'].includes(usuario.role)) return true;
+  const perms = usuario.permissoes || {};
+  return perms[permissao] === true;
+};
+
 // ── AUTH ─────────────────────────────────────────────
 r.post('/auth/login', async (req, res) => {
   try {
@@ -109,7 +117,9 @@ r.post('/tecnicos', autenticar, autorizar('admin', 'gestor'), async (req, res) =
   }
 });
 
-r.put('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.put('/tecnicos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const id = parseInt(req.params.id);
     const nome     = req.body.nome     || null;
@@ -122,23 +132,10 @@ r.put('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res
     const raio = (req.body.raio !== '' && req.body.raio != null) ? parseFloat(req.body.raio) : null;
     console.log(`[PUT /tecnicos/${id}]`, { nome, codigo, status, lat, lng, regioes });
     const { rows } = await pool.query(
-      `UPDATE tecnicos
-       SET nome     = COALESCE($1, nome),
-           codigo   = COALESCE($2, codigo),
-           telefone = COALESCE($3, telefone),
-           regioes  = $4,
-           status   = COALESCE($5, status),
-           lat      = $6,
-           lng      = $7,
-           raio     = $8
-       WHERE id = $9
-       RETURNING *`,
+      `UPDATE tecnicos SET nome=COALESCE($1,nome),codigo=COALESCE($2,codigo),telefone=COALESCE($3,telefone),regioes=$4,status=COALESCE($5,status),lat=$6,lng=$7,raio=$8 WHERE id=$9 RETURNING *`,
       [nome, codigo, telefone, regioes, status, lat, lng, raio, id]
     );
-    if (!rows.length) {
-      console.error(`Técnico id=${id} não encontrado no banco`);
-      return res.status(404).json({ erro: `Técnico id=${id} não encontrado` });
-    }
+    if (!rows.length) return res.status(404).json({ erro: `Técnico id=${id} não encontrado` });
     res.json(rows[0]);
   } catch (err) {
     console.error('Erro ao atualizar técnico:', err.message);
@@ -146,7 +143,9 @@ r.put('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res
   }
 });
 
-r.delete('/tecnicos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.delete('/tecnicos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'excluir_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     await pool.query('UPDATE tecnicos SET ativo=FALSE WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Técnico desativado' });
@@ -173,7 +172,9 @@ r.post('/equipamentos', autenticar, autorizar('admin', 'gestor'), async (req, re
   } catch { res.status(500).json({ erro: 'Erro ao criar equipamento' }); }
 });
 
-r.put('/equipamentos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.put('/equipamentos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_equipamentos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const { marca, modelo, plano, wifi, diferencial } = req.body;
     const { rows } = await pool.query(
@@ -185,7 +186,9 @@ r.put('/equipamentos/:id', autenticar, autorizar('admin', 'gestor'), async (req,
   } catch { res.status(500).json({ erro: 'Erro ao atualizar equipamento' }); }
 });
 
-r.delete('/equipamentos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.delete('/equipamentos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'excluir_equipamentos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     await pool.query('UPDATE equipamentos SET ativo=FALSE WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Equipamento removido' });
@@ -208,14 +211,14 @@ r.get('/guias/:slug', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao buscar guia' }); }
 });
 
-r.put('/guias/:id/imagem', autenticar, autorizar('admin'), async (req, res) => {
+r.put('/guias/:id/imagem', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_guias'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const { step_index, img_index, url } = req.body;
     const slug = req.params.id;
     const isNum = /^\d+$/.test(slug);
-    const query = isNum
-      ? 'SELECT id, conteudo FROM guias WHERE id=$1'
-      : 'SELECT id, conteudo FROM guias WHERE slug=$1';
+    const query = isNum ? 'SELECT id, conteudo FROM guias WHERE id=$1' : 'SELECT id, conteudo FROM guias WHERE slug=$1';
     const { rows } = await pool.query(query, [slug]);
     if (!rows.length) return res.status(404).json({ erro: 'Guia não encontrado' });
     const { id, conteudo } = rows[0];
@@ -226,10 +229,8 @@ r.put('/guias/:id/imagem', autenticar, autorizar('admin'), async (req, res) => {
     if (img_index !== undefined && img_index < imgs.length) imgs[img_index] = url;
     else imgs.push(url);
     await pool.query('UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2', [JSON.stringify(conteudo), id]);
-    console.log(`[IMG SALVA] guia=${slug} step=${step_index} img=${img_index} url=${url}`);
     res.json({ mensagem: 'Imagem salva no banco com sucesso', url });
   } catch (err) {
-    console.error('Erro ao salvar imagem:', err.message);
     res.status(500).json({ erro: 'Erro ao salvar imagem', detalhe: err.message });
   }
 });
@@ -244,7 +245,9 @@ r.get('/avisos', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao listar avisos' }); }
 });
 
-r.post('/avisos', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.post('/avisos', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_avisos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const { titulo, corpo, prioridade = 'normal', setor_id } = req.body;
     if (!titulo || !corpo) return res.status(400).json({ erro: 'Título e corpo obrigatórios' });
@@ -256,7 +259,9 @@ r.post('/avisos', autenticar, autorizar('admin', 'gestor'), async (req, res) => 
   } catch { res.status(500).json({ erro: 'Erro ao criar aviso' }); }
 });
 
-r.put('/avisos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.put('/avisos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_avisos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const { titulo, corpo, prioridade } = req.body;
     const { rows } = await pool.query(
@@ -268,7 +273,9 @@ r.put('/avisos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) 
   } catch { res.status(500).json({ erro: 'Erro ao editar aviso' }); }
 });
 
-r.delete('/avisos/:id', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
+r.delete('/avisos/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'excluir_avisos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
   try {
     await pool.query('UPDATE avisos SET ativo=FALSE WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Aviso removido' });
@@ -470,7 +477,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     if (result) { geoServerCache[nome] = result; return res.json(result); }
   }
 
-  console.log(`[GEO] "${nAcento}" não encontrado`);
   res.status(404).json({ erro:'Região não encontrada' });
 });
 
@@ -618,7 +624,6 @@ r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'
   req.on('end', () => {
     const buffer = Buffer.concat(chunks);
     fs.writeFileSync(PDF_PATH, buffer);
-    console.log(`[PDF] Salvo localmente: ${buffer.length} bytes`);
     res.json({ ok: true, size: buffer.length });
   });
   req.on('error', e => res.status(500).json({ erro: e.message }));
@@ -636,7 +641,6 @@ r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), asy
         await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
         res.json({ url });
       } catch(e) {
-        console.error('[PDF Upload]', e.message);
         res.status(500).json({ erro: e.message });
       }
     });
