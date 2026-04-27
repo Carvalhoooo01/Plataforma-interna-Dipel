@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const S = ({ d }) => (
   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -7,13 +9,24 @@ const S = ({ d }) => (
   </svg>
 );
 
-const NavItem = ({ to, label, icon, onClick }) => (
+const getLidos = () => {
+  try { return JSON.parse(localStorage.getItem('dp_avisos_lidos') || '[]'); }
+  catch { return []; }
+};
+
+const NavItem = ({ to, label, icon, onClick, badge }) => (
   <NavLink to={to} onClick={onClick} className={({ isActive }) =>
     `flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg mx-2 transition-all ${
       isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white hover:bg-white/10'
     }`
   }>
-    {icon}{label}
+    {icon}
+    <span className="flex-1">{label}</span>
+    {badge > 0 && (
+      <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+        {badge > 99 ? '99+' : badge}
+      </span>
+    )}
   </NavLink>
 );
 
@@ -25,25 +38,53 @@ const ini = n => (n||'').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase
 
 export default function Sidebar({ open, onClose, dark, toggleDark }) {
   const { usuario, temRole, temAcesso, logout } = useAuth();
+  const [naoLidos, setNaoLidos] = useState(0);
+
+  const calcularNaoLidos = (lista) => {
+    const lidos = getLidos();
+    return lista.filter(a => !lidos.includes(a.id)).length;
+  };
+
+  useEffect(() => {
+    // Carrega avisos e calcula não lidos
+    const atualizar = () => {
+      api.get('/avisos').then(r => {
+        setNaoLidos(calcularNaoLidos(r.data));
+      }).catch(() => {});
+    };
+
+    atualizar();
+
+    // Atualiza quando avisos são lidos
+    window.addEventListener('avisos-lidos', atualizar);
+
+    // Verifica a cada 2 minutos por novos avisos
+    const interval = setInterval(atualizar, 2 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener('avisos-lidos', atualizar);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <>
       {/* Desktop — sempre visível */}
       <aside className="hidden lg:flex flex-col fixed top-0 left-0 bottom-0 w-64 bg-gray-900 z-40">
-        <SidebarContent usuario={usuario} temRole={temRole} temAcesso={temAcesso} logout={logout} dark={dark} toggleDark={toggleDark} onNav={() => {}} />
+        <SidebarContent usuario={usuario} temRole={temRole} temAcesso={temAcesso} logout={logout} dark={dark} toggleDark={toggleDark} onNav={() => {}} naoLidos={naoLidos} />
       </aside>
 
       {/* Mobile — slide in/out */}
       {open && (
         <aside className="flex lg:hidden flex-col fixed top-0 left-0 bottom-0 w-64 bg-gray-900 z-50">
-          <SidebarContent usuario={usuario} temRole={temRole} temAcesso={temAcesso} logout={logout} dark={dark} toggleDark={toggleDark} onNav={onClose} showClose onClose={onClose} />
+          <SidebarContent usuario={usuario} temRole={temRole} temAcesso={temAcesso} logout={logout} dark={dark} toggleDark={toggleDark} onNav={onClose} showClose onClose={onClose} naoLidos={naoLidos} />
         </aside>
       )}
     </>
   );
 }
 
-function SidebarContent({ usuario, temRole, temAcesso, logout, dark, toggleDark, onNav, showClose, onClose }) {
+function SidebarContent({ usuario, temRole, temAcesso, logout, dark, toggleDark, onNav, showClose, onClose, naoLidos }) {
   return (
     <>
       {/* Logo */}
@@ -82,14 +123,14 @@ function SidebarContent({ usuario, temRole, temAcesso, logout, dark, toggleDark,
 
         <Label text="Comunicação" />
         {temAcesso('reciclagem')   && <NavItem to="/reciclagem"   label="Manual de Reciclagem" icon={<S d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>} onClick={onNav} />}
-        {temAcesso('avisos')       && <NavItem to="/avisos"       label="Avisos e Comunicados" icon={<S d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>} onClick={onNav} />}
+        {temAcesso('avisos')       && <NavItem to="/avisos"       label="Avisos e Comunicados" badge={naoLidos} icon={<S d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>} onClick={onNav} />}
 
         {temRole('admin','gestor') && <>
           <Label text="Admin" />
           <NavItem to="/usuarios" label="Gerenciar Usuários" icon={<S d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>} onClick={onNav} />
         </>}
 
-        {/* Modo Claro/Escuro — solto no nav, no fim */}
+        {/* Modo Claro/Escuro */}
         <div className="px-2 mt-2">
           <button
             onClick={toggleDark}

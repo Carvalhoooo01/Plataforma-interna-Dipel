@@ -10,19 +10,42 @@ const PRIO = {
 
 const FORM_INI = { titulo:'', corpo:'', prioridade:'normal' };
 
+const getLidos = () => {
+  try { return JSON.parse(localStorage.getItem('dp_avisos_lidos') || '[]'); }
+  catch { return []; }
+};
+
+const marcarLido = (id) => {
+  const lidos = getLidos();
+  if (!lidos.includes(id)) {
+    localStorage.setItem('dp_avisos_lidos', JSON.stringify([...lidos, id]));
+  }
+};
+
+export const getAvisosNaoLidos = (lista) => {
+  const lidos = getLidos();
+  return lista.filter(a => !lidos.includes(a.id)).length;
+};
+
 export default function Avisos() {
-  const { temRole, usuario } = useAuth();
+  const { temRole, podeEditar: podeEditarCtx, usuario } = useAuth();
   const [lista, setLista]   = useState([]);
   const [modal, setModal]   = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm]     = useState(FORM_INI);
   const [erro, setErro]     = useState('');
   const [salvando, setSalv] = useState(false);
-  const podeEditar = temRole('admin', 'gestor');
+  const podeEditar = temRole('admin', 'gestor') || podeEditarCtx('avisos');
 
   useEffect(() => { carregar(); }, []);
 
-  const carregar = () => api.get('/avisos').then(r => setLista(r.data)).catch(() => {});
+  const carregar = () => api.get('/avisos').then(r => {
+    setLista(r.data);
+    // Marca todos como lidos ao abrir a página
+    r.data.forEach(a => marcarLido(a.id));
+    // Dispara evento para o Sidebar atualizar o contador
+    window.dispatchEvent(new Event('avisos-lidos'));
+  }).catch(() => {});
 
   const abrirModal = (a = null) => {
     setEditId(a?.id || null);

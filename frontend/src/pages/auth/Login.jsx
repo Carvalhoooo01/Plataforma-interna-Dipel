@@ -3,16 +3,26 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Login() {
-  const [email, setEmail]   = useState('');
-  const [senha, setSenha]   = useState('');
-  const [erro, setErro]     = useState('');
-  const [load, setLoad]     = useState(false);
-  const { login }           = useAuth();
-  const navigate            = useNavigate();
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [erro, setErro]   = useState('');
+  const [load, setLoad]   = useState(false);
+  const { login }         = useAuth();
+  const navigate          = useNavigate();
 
   const submit = async (e) => {
     e.preventDefault(); setErro(''); setLoad(true);
-    try { await login(email, senha); navigate('/dashboard'); }
+    try {
+      const u = await login(email, senha);
+      if (u.role === 'admin' || u.role === 'gestor') {
+        navigate('/dashboard');
+      } else {
+        const perms = u.permissoes || {};
+        const ORDEM = ['dashboard','guias','equipamentos','tecnicos','mapa','reciclagem','avisos'];
+        const primeira = ORDEM.find(a => perms[a] === true) || 'guias';
+        navigate('/' + primeira);
+      }
+    }
     catch (err) { setErro(err.response?.data?.erro || 'Erro ao fazer login'); }
     finally { setLoad(false); }
   };
@@ -34,18 +44,18 @@ export default function Login() {
           <div style={{marginBottom:14}}>
             <label style={{display:'block',fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>E-mail</label>
             <input value={email} onChange={e=>setEmail(e.target.value)} type="email" required autoFocus
-              style={{width:'100%',padding:'9px 12px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:14,outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',padding:'9px 12px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:14,outline:'none',boxSizing:'border-box',color:'#111827'}}
               placeholder="admin@dipelnet.com.br" />
           </div>
           <div style={{marginBottom:14}}>
             <label style={{display:'block',fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:5,textTransform:'uppercase',letterSpacing:.4}}>Senha</label>
             <input value={senha} onChange={e=>setSenha(e.target.value)} type="password" required
-              style={{width:'100%',padding:'9px 12px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:14,outline:'none',boxSizing:'border-box'}}
+              style={{width:'100%',padding:'9px 12px',border:'1px solid #e5e7eb',borderRadius:8,fontSize:14,outline:'none',boxSizing:'border-box',color:'#111827'}}
               placeholder="••••••••" />
           </div>
           {erro && <div style={{background:'#fee2e2',color:'#991b1b',borderRadius:8,padding:'9px 12px',fontSize:13,marginBottom:14}}>{erro}</div>}
           <button type="submit" disabled={load}
-            style={{width:'100%',padding:10,background:'#1a56db',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',opacity:load?.7:1}}>
+            style={{width:'100%',padding:10,background:'#1a56db',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',opacity:load?0.7:1}}>
             {load ? 'Entrando...' : 'Entrar'}
           </button>
         </form>

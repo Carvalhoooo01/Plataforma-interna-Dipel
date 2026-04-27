@@ -25,7 +25,7 @@ export default function Reciclagem() {
     if (!file || file.type !== 'application/pdf') { setErro('Selecione um arquivo PDF'); return; }
     setErro(''); setEnviando(true); setProg(0);
     try {
-      const token  = localStorage.getItem('dp_token');
+      const token  = sessionStorage.getItem('dp_token');
       const buffer = await file.arrayBuffer();
       const xhr    = new XMLHttpRequest();
 
@@ -58,7 +58,7 @@ export default function Reciclagem() {
   const remover = async () => {
     if (!confirm('Remover o PDF atual?')) return;
     try {
-      const token = localStorage.getItem('dp_token');
+      const token = sessionStorage.getItem('dp_token');
       await fetch(`${API}/api/config/reciclagem-remover`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
