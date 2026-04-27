@@ -10,7 +10,6 @@ const ini = n => (n||'').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase
 const th = {padding:'9px 14px',fontSize:11,fontWeight:600,color:'#6b7280',textTransform:'uppercase',letterSpacing:.5,borderBottom:'1px solid #e5e7eb',background:'#f9fafb',textAlign:'left',whiteSpace:'nowrap'};
 const td = {padding:'11px 14px',fontSize:13,borderBottom:'1px solid #e5e7eb',verticalAlign:'middle'};
 
-// Input com cor de texto explícita para evitar texto invisível
 const inp = {
   width:'100%',
   padding:'8px 11px',
@@ -79,10 +78,13 @@ export default function Usuarios() {
     } catch (err) { setErro(err.response?.data?.erro || 'Erro ao salvar'); }
   };
 
-  const desativar = async (id) => {
-    if (!confirm('Desativar este usuário?')) return;
-    try { await api.delete(`/usuarios/${id}`); setLista(p => p.filter(u => u.id !== id)); }
-    catch (err) { alert(err.response?.data?.erro || 'Erro'); }
+  const excluir = async (id) => {
+    if (!confirm('Excluir este usuário permanentemente?\nEsta ação não pode ser desfeita.')) return;
+    try {
+      await api.delete(`/usuarios/${id}`);
+      setLista(p => p.filter(u => u.id !== id));
+    }
+    catch (err) { alert(err.response?.data?.erro || 'Erro ao excluir'); }
   };
 
   const isColaborador = form.role === 'colaborador';
@@ -124,15 +126,10 @@ export default function Usuarios() {
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
                   <span style={{fontSize:11,color:'#6b7280',background:'#f3f4f6',padding:'2px 8px',borderRadius:10}}>{nAbas}</span>
-                  <span style={{fontSize:11,padding:'2px 8px',borderRadius:10,fontWeight:500,background:u.ativo?'#d1fae5':'#f3f4f6',color:u.ativo?'#065f46':'#374151'}}>
-                    {u.ativo ? 'Ativo' : 'Inativo'}
-                  </span>
                 </div>
                 <div style={{display:'flex',gap:8}}>
                   <button onClick={() => abrirModal(u)} style={{flex:1,background:'transparent',border:'1px solid #e5e7eb',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500,color:'#374151'}}>Editar</button>
-                  {u.ativo && (
-                    <button onClick={() => desativar(u.id)} style={{flex:1,background:'#dc2626',color:'#fff',border:'none',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500}}>Desativar</button>
-                  )}
+                  <button onClick={() => excluir(u.id)} style={{flex:1,background:'#dc2626',color:'#fff',border:'none',borderRadius:8,padding:'7px 0',fontSize:13,cursor:'pointer',fontWeight:500}}>Excluir</button>
                 </div>
               </div>
             );
@@ -149,7 +146,6 @@ export default function Usuarios() {
                   <th style={th}>E-mail</th>
                   <th style={th}>Perfil</th>
                   <th style={th}>Acesso</th>
-                  <th style={th}>Status</th>
                   <th style={th}>Ações</th>
                 </tr>
               </thead>
@@ -171,18 +167,17 @@ export default function Usuarios() {
                       <td style={{...td,color:'#6b7280'}}>{u.email}</td>
                       <td style={td}><span style={{display:'inline-block',padding:'2px 8px',borderRadius:20,fontSize:11,fontWeight:500,background:bg,color:co}}>{ROLE_LABEL[u.role]||u.role}</span></td>
                       <td style={{...td,fontSize:12,color:'#6b7280'}}>{nAbas}</td>
-                      <td style={td}><span style={{display:'inline-block',padding:'2px 8px',borderRadius:20,fontSize:11,fontWeight:500,background:u.ativo?'#d1fae5':'#f3f4f6',color:u.ativo?'#065f46':'#374151'}}>{u.ativo?'Ativo':'Inativo'}</span></td>
                       <td style={td}>
                         <div style={{display:'flex',gap:6}}>
                           <button onClick={() => abrirModal(u)} style={{background:'transparent',border:'1px solid #e5e7eb',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer',color:'#374151'}}>Editar</button>
-                          {u.ativo && <button onClick={() => desativar(u.id)} style={{background:'#dc2626',color:'#fff',border:'none',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Desativar</button>}
+                          <button onClick={() => excluir(u.id)} style={{background:'#dc2626',color:'#fff',border:'none',borderRadius:7,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Excluir</button>
                         </div>
                       </td>
                     </tr>
                   );
                 })}
                 {!lista.length && (
-                  <tr><td colSpan={6} style={{...td,textAlign:'center',color:'#9ca3af',padding:24}}>Nenhum usuário encontrado</td></tr>
+                  <tr><td colSpan={5} style={{...td,textAlign:'center',color:'#9ca3af',padding:24}}>Nenhum usuário encontrado</td></tr>
                 )}
               </tbody>
             </table>
@@ -211,7 +206,6 @@ export default function Usuarios() {
               left: isMobile ? 0 : 'auto',
             }}
           >
-            {/* Header */}
             <div style={{padding:'18px 22px 14px',borderBottom:'1px solid #e5e7eb',display:'flex',justifyContent:'space-between',alignItems:'center',position:'sticky',top:0,background:'#ffffff',zIndex:1}}>
               <span style={{fontSize:15,fontWeight:600,color:'#111827'}}>{editId ? 'Editar Usuário' : 'Novo Colaborador'}</span>
               <button onClick={() => setModal(false)} style={{background:'none',border:'none',cursor:'pointer',fontSize:20,color:'#6b7280',lineHeight:1}}>×</button>
@@ -219,30 +213,15 @@ export default function Usuarios() {
 
             <div style={{padding:'18px 22px'}}>
               <Campo label="Nome completo">
-                <input
-                  value={form.nome}
-                  onChange={e => set('nome', e.target.value)}
-                  placeholder="Nome completo"
-                  style={inp}
-                />
+                <input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Nome completo" style={inp} />
               </Campo>
 
               <div style={{display:'grid',gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',gap:14}}>
                 <Campo label="E-mail">
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => set('email', e.target.value)}
-                    placeholder="email@dipelnet.com.br"
-                    style={inp}
-                  />
+                  <input type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@dipelnet.com.br" style={inp} />
                 </Campo>
                 <Campo label="Perfil">
-                  <select
-                    value={form.role}
-                    onChange={e => set('role', e.target.value)}
-                    style={{...inp, background:'#ffffff'}}
-                  >
+                  <select value={form.role} onChange={e => set('role', e.target.value)} style={{...inp, background:'#ffffff'}}>
                     {ROLES.map(r => <option key={r} value={r}>{ROLE_LABEL[r]||r}</option>)}
                   </select>
                 </Campo>
@@ -250,13 +229,7 @@ export default function Usuarios() {
 
               {!editId && (
                 <Campo label="Senha inicial (mín. 6 caracteres)">
-                  <input
-                    type="password"
-                    value={form.senha}
-                    onChange={e => set('senha', e.target.value)}
-                    placeholder="••••••••"
-                    style={inp}
-                  />
+                  <input type="password" value={form.senha} onChange={e => set('senha', e.target.value)} placeholder="••••••••" style={inp} />
                 </Campo>
               )}
 

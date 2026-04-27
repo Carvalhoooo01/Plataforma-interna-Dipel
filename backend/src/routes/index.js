@@ -87,10 +87,10 @@ r.put('/usuarios/:id', autenticar, autorizar('admin'), async (req, res) => {
 
 r.delete('/usuarios/:id', autenticar, autorizar('admin'), async (req, res) => {
   try {
-    if (parseInt(req.params.id) === req.usuario.id) return res.status(400).json({ erro: 'Não pode desativar sua própria conta' });
-    await pool.query('UPDATE usuarios SET ativo=FALSE WHERE id=$1', [req.params.id]);
-    res.json({ mensagem: 'Usuário desativado' });
-  } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
+    if (parseInt(req.params.id) === req.usuario.id) return res.status(400).json({ erro: 'Não pode excluir sua própria conta' });
+    await pool.query('DELETE FROM usuarios WHERE id=$1', [req.params.id]);
+    res.json({ mensagem: 'Usuário excluído' });
+  } catch { res.status(500).json({ erro: 'Erro ao excluir' }); }
 });
 
 // ── TÉCNICOS ──────────────────────────────────────────
