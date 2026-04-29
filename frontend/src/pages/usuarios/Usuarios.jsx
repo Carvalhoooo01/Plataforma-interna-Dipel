@@ -254,7 +254,7 @@ export default function Usuarios() {
 
                   <div style={{fontSize:11,fontWeight:600,color:'#6b7280',marginBottom:8,textTransform:'uppercase',letterSpacing:.4}}>Pode editar / excluir</div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
-                    {['tecnicos','avisos','equipamentos','guias'].map(ctx => (
+                    {['tecnicos','avisos','equipamentos','guias','colaboradores'].map(ctx => (
                       <>
                         <label key={`editar_${ctx}`} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 10px',borderRadius:8,border:'1px solid #e2e8f0',background:form.permissoes[`editar_${ctx}`]?'#f0fdf4':'#fff',cursor:'pointer',fontSize:13,color:'#374151'}}>
                           <input
