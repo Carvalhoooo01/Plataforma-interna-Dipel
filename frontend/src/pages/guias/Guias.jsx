@@ -268,11 +268,14 @@ export default function Guias() {
     CHECKLIST_CATS.forEach(cat => {
       const base = JSON.parse(JSON.stringify(cat));
       api.get(`/guias/${cat.slug}`).then(({ data }) => {
-        if (data.conteudo?.steps?.length) {
+        if (data.conteudo?.steps) {
           base.steps = base.steps.map((localStep, si) => {
-            const apiStep = data.conteudo.steps[si] || {};
-            const imgsDB  = Array.isArray(apiStep.imgs) && apiStep.imgs.some(u => u) ? apiStep.imgs : localStep.imgs;
-            return { ...localStep, imgs: imgsDB };
+            const apiStep = data.conteudo.steps[si];
+            // Se o step existe no banco, confia no banco (mesmo array vazio = foto foi removida)
+            const imgsDB = apiStep && Array.isArray(apiStep.imgs)
+              ? apiStep.imgs.filter(u => u)
+              : null;
+            return { ...localStep, imgs: imgsDB !== null ? imgsDB : localStep.imgs };
           });
         }
         setChecklistConts(prev => ({ ...prev, [cat.id]: base }));
