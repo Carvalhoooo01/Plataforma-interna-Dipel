@@ -213,20 +213,54 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
     const { step_index, img_index, url } = req.body;
-    const slug = req.params.id;
+    const slug  = req.params.id;
     const isNum = /^\d+$/.test(slug);
-    const query = isNum ? 'SELECT id, conteudo FROM guias WHERE id=$1' : 'SELECT id, conteudo FROM guias WHERE slug=$1';
-    const { rows } = await pool.query(query, [slug]);
-    if (!rows.length) return res.status(404).json({ erro: 'Guia não encontrado' });
+
+    // Busca o guia (por id ou slug)
+    const query = isNum
+      ? 'SELECT id, conteudo FROM guias WHERE id=$1'
+      : 'SELECT id, conteudo FROM guias WHERE slug=$1';
+    let { rows } = await pool.query(query, [slug]);
+
+    // Se não existe no banco (ex: checklist), cria o registro automaticamente
+    if (!rows.length) {
+      if (isNum) return res.status(404).json({ erro: 'Guia não encontrado' });
+      const ins = await pool.query(
+        `INSERT INTO guias (slug, titulo, descricao, categoria, conteudo, status)
+         VALUES ($1,$1,'','','{"steps":[]}'::jsonb,'Ativo') RETURNING id, conteudo`,
+        [slug]
+      );
+      rows = ins.rows;
+    }
+
     const { id, conteudo } = rows[0];
     if (!conteudo.steps) conteudo.steps = [];
-    if (!conteudo.steps[step_index]) return res.status(400).json({ erro: 'Step não encontrado' });
+
+    // Garante que o step existe
+    while (conteudo.steps.length <= step_index) conteudo.steps.push({ imgs: [] });
     if (!Array.isArray(conteudo.steps[step_index].imgs)) conteudo.steps[step_index].imgs = [];
+
     const imgs = conteudo.steps[step_index].imgs;
-    if (img_index !== undefined && img_index < imgs.length) imgs[img_index] = url;
-    else imgs.push(url);
-    await pool.query('UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2', [JSON.stringify(conteudo), id]);
-    res.json({ mensagem: 'Imagem salva no banco com sucesso', url });
+
+    if (url === null || url === undefined) {
+      // REMOÇÃO: splice para remover o elemento do array
+      if (img_index !== undefined && img_index < imgs.length) {
+        imgs.splice(img_index, 1);
+      }
+    } else {
+      // ADIÇÃO / TROCA
+      if (img_index !== undefined && img_index < imgs.length) {
+        imgs[img_index] = url;
+      } else {
+        imgs.push(url);
+      }
+    }
+
+    await pool.query(
+      'UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2',
+      [JSON.stringify(conteudo), id]
+    );
+    res.json({ mensagem: 'Imagem atualizada com sucesso', url });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar imagem', detalhe: err.message });
   }

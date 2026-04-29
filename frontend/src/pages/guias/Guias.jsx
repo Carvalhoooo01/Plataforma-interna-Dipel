@@ -321,13 +321,14 @@ export default function Guias() {
     }).open();
   };
 
-  const removerGuia = (stepIdx, imgIdx) => {
+  const removerGuia = async (stepIdx, imgIdx) => {
     if (!confirm('Remover esta foto?')) return;
     setCont(prev => {
       const c = JSON.parse(JSON.stringify(prev));
-      c.steps[stepIdx].imgs[imgIdx] = null;
+      c.steps[stepIdx].imgs.splice(imgIdx, 1);
       return c;
     });
+    try { await api.put(`/guias/${atual.id||atual.slug}/imagem`, { step_index: stepIdx, img_index: imgIdx, url: null }); } catch {}
   };
 
   const uploadChecklist = (catId, catSlug) => (stepIdx, imgIdx) => {
@@ -352,13 +353,14 @@ export default function Guias() {
     }).open();
   };
 
-  const removerChecklist = (catId) => (stepIdx, imgIdx) => {
+  const removerChecklist = (catId, catSlug) => async (stepIdx, imgIdx) => {
     if (!confirm('Remover esta foto?')) return;
     setChecklistConts(prev => {
       const c = JSON.parse(JSON.stringify(prev));
-      c[catId].steps[stepIdx].imgs[imgIdx] = null;
+      c[catId].steps[stepIdx].imgs.splice(imgIdx, 1);
       return c;
     });
+    try { await api.put(`/guias/${catSlug}/imagem`, { step_index: stepIdx, img_index: imgIdx, url: null }); } catch {}
   };
 
   // ── CHECKLIST VIEW ──
@@ -390,7 +392,7 @@ export default function Guias() {
         onVoltar={() => setVerChecklist(false)}
         isAdmin={isAdmin}
         onUpload={uploadChecklist(catAtiva, catAtual.slug)}
-        onRemove={removerChecklist(catAtiva)}
+        onRemove={removerChecklist(catAtiva, catAtual.slug)}
         header={tabs}
       />
     );
