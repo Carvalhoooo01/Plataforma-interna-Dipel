@@ -3,13 +3,14 @@ import api from '../services/api';
 const Ctx = createContext(null);
 
 export const ABAS = [
-  { key:'dashboard',    label:'Dashboard' },
-  { key:'guias',        label:'Guias de Instrução' },
-  { key:'equipamentos', label:'Equipamentos' },
-  { key:'tecnicos',     label:'Técnicos' },
-  { key:'mapa',         label:'Mapa de Técnicos' },
-  { key:'reciclagem',   label:'Manual de Reciclagem' },
-  { key:'avisos',       label:'Avisos e Comunicados' },
+  { key:'dashboard',     label:'Dashboard' },
+  { key:'guias',         label:'Guias de Instrução' },
+  { key:'equipamentos',  label:'Equipamentos' },
+  { key:'tecnicos',      label:'Técnicos' },
+  { key:'mapa',          label:'Mapa de Técnicos' },
+  { key:'reciclagem',    label:'Manual de Reciclagem' },
+  { key:'avisos',        label:'Avisos e Comunicados' },
+  { key:'colaboradores', label:'Setores e Colaboradores' },
 ];
 
 export function AuthProvider({ children }) {
@@ -17,7 +18,6 @@ export function AuthProvider({ children }) {
   const [carregando, setCarreg] = useState(true);
 
   useEffect(() => {
-    // sessionStorage é limpo ao fechar o navegador/aba
     const token = sessionStorage.getItem('dp_token');
     const salvo = sessionStorage.getItem('dp_usuario');
     if (token && salvo) {

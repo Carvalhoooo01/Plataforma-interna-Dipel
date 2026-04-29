@@ -6,7 +6,6 @@ const { autenticar, autorizar } = require('../middleware/auth');
 
 const r = express.Router();
 
-// Helper: verifica se usuário tem permissão específica
 const temPermissao = (usuario, permissao) => {
   if (!usuario) return false;
   if (['admin','gestor'].includes(usuario.role)) return true;
@@ -129,8 +128,7 @@ r.put('/tecnicos/:id', autenticar, async (req, res) => {
     const lat      = (req.body.lat !== '' && req.body.lat != null) ? parseFloat(req.body.lat) : null;
     const lng      = (req.body.lng !== '' && req.body.lng != null) ? parseFloat(req.body.lng) : null;
     const regioes  = Array.isArray(req.body.regioes) ? req.body.regioes : (req.body.regioes ? String(req.body.regioes).split(',').map(r=>r.trim()) : []);
-    const raio = (req.body.raio !== '' && req.body.raio != null) ? parseFloat(req.body.raio) : null;
-    console.log(`[PUT /tecnicos/${id}]`, { nome, codigo, status, lat, lng, regioes });
+    const raio     = (req.body.raio !== '' && req.body.raio != null) ? parseFloat(req.body.raio) : null;
     const { rows } = await pool.query(
       `UPDATE tecnicos SET nome=COALESCE($1,nome),codigo=COALESCE($2,codigo),telefone=COALESCE($3,telefone),regioes=$4,status=COALESCE($5,status),lat=$6,lng=$7,raio=$8 WHERE id=$9 RETURNING *`,
       [nome, codigo, telefone, regioes, status, lat, lng, raio, id]
@@ -138,7 +136,6 @@ r.put('/tecnicos/:id', autenticar, async (req, res) => {
     if (!rows.length) return res.status(404).json({ erro: `Técnico id=${id} não encontrado` });
     res.json(rows[0]);
   } catch (err) {
-    console.error('Erro ao atualizar técnico:', err.message);
     res.status(500).json({ erro: 'Erro ao atualizar técnico', detalhe: err.message });
   }
 });
@@ -280,6 +277,51 @@ r.delete('/avisos/:id', autenticar, async (req, res) => {
     await pool.query('UPDATE avisos SET ativo=FALSE WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Aviso removido' });
   } catch { res.status(500).json({ erro: 'Erro ao remover aviso' }); }
+});
+
+// ── COLABORADORES ─────────────────────────────────────
+r.get('/colaboradores', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM colaboradores ORDER BY setor, ordem, nome');
+    res.json(rows);
+  } catch { res.status(500).json({ erro: 'Erro ao listar colaboradores' }); }
+});
+
+r.post('/colaboradores', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { nome, cargo, setor, ordem = 0 } = req.body;
+    if (!nome || !cargo || !setor) return res.status(400).json({ erro: 'Nome, cargo e setor obrigatórios' });
+    const { rows } = await pool.query(
+      'INSERT INTO colaboradores (nome, cargo, setor, ordem) VALUES ($1,$2,$3,$4) RETURNING *',
+      [nome, cargo, setor, ordem]
+    );
+    res.status(201).json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao criar colaborador' }); }
+});
+
+r.put('/colaboradores/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { nome, cargo, setor, ordem } = req.body;
+    const { rows } = await pool.query(
+      'UPDATE colaboradores SET nome=$1, cargo=$2, setor=$3, ordem=COALESCE($4,ordem) WHERE id=$5 RETURNING *',
+      [nome, cargo, setor, ordem, req.params.id]
+    );
+    if (!rows.length) return res.status(404).json({ erro: 'Não encontrado' });
+    res.json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao atualizar colaborador' }); }
+});
+
+r.delete('/colaboradores/:id', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    await pool.query('DELETE FROM colaboradores WHERE id=$1', [req.params.id]);
+    res.json({ mensagem: 'Colaborador removido' });
+  } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
 // ── SETORES ───────────────────────────────────────────

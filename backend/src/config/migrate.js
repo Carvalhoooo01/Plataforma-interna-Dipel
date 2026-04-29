@@ -17,17 +17,17 @@ const migrate = async () => {
     `);
 
     await client.query(`
-  CREATE TABLE IF NOT EXISTS equipamentos (
-    id          SERIAL PRIMARY KEY,
-    marca       VARCHAR(100) NOT NULL,
-    modelo      VARCHAR(100) NOT NULL,
-    plano       VARCHAR(100),
-    wifi        VARCHAR(100),
-    diferencial TEXT,
-    ativo       BOOLEAN DEFAULT TRUE,
-    criado_em   TIMESTAMP DEFAULT NOW()
-  );
-`);
+      CREATE TABLE IF NOT EXISTS equipamentos (
+        id          SERIAL PRIMARY KEY,
+        marca       VARCHAR(100) NOT NULL,
+        modelo      VARCHAR(100) NOT NULL,
+        plano       VARCHAR(100),
+        wifi        VARCHAR(100),
+        diferencial TEXT,
+        ativo       BOOLEAN DEFAULT TRUE,
+        criado_em   TIMESTAMP DEFAULT NOW()
+      );
+    `);
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
@@ -88,7 +88,23 @@ const migrate = async () => {
       );
     `);
 
-    // ── SEEDS ───────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS colaboradores (
+        id        SERIAL PRIMARY KEY,
+        nome      VARCHAR(150) NOT NULL,
+        cargo     VARCHAR(100) NOT NULL,
+        setor     VARCHAR(50)  NOT NULL,
+        ordem     INTEGER DEFAULT 0,
+        criado_em TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    // Colunas extras
+    await client.query(`ALTER TABLE tecnicos ADD COLUMN IF NOT EXISTS raio DOUBLE PRECISION;`);
+    await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{}';`);
+    await client.query(`CREATE TABLE IF NOT EXISTS configuracoes (chave VARCHAR(100) PRIMARY KEY, valor TEXT);`);
+
+    // Seeds
     await client.query(`INSERT INTO setores (nome, descricao) VALUES ('Campo','Setor de instalação e manutenção') ON CONFLICT (nome) DO NOTHING;`);
 
     const hash = await bcrypt.hash('admin123', 10);
@@ -98,7 +114,6 @@ const migrate = async () => {
       ON CONFLICT (email) DO NOTHING;
     `, [hash]);
 
-    // Guias com conteúdo completo
     const guiasData = [
       {
         slug: 'onu02b',
@@ -107,7 +122,7 @@ const migrate = async () => {
         categoria: 'Ativação',
         conteudo: {
           badge:'bb', badgeText:'11 etapas',
-          alerta:'Use o NE Manager (OLT PANTANAL — 10.125.24.46) para este procedimento.',
+          alerta:'Use o NE Manager (OLT PANTANAL – 10.125.24.46) para este procedimento.',
           steps:[
             {titulo:'Abrir ONU Authorization View', descricao:'No NE Manager, clique no ícone de autorização ONU na barra de ferramentas.', img:null, tip:null},
             {titulo:'Selecionar todas as caixas', descricao:'Na janela "Switch Object", selecione todas as caixas (OLT PANTANAL → AN5516-04_NODE1 → GC8B[1] e GC8B[2]) e clique OK.', img:null, tip:null},
@@ -127,7 +142,7 @@ const migrate = async () => {
       {
         slug: 'huawei',
         titulo: 'Ativação Huawei em Bridge',
-        descricao: 'iManager U2000 — ONT em modo bridge com VAS Profile ONT-BRIDGE-2020',
+        descricao: 'iManager U2000 – ONT em modo bridge com VAS Profile ONT-BRIDGE-2020',
         categoria: 'Ativação',
         conteudo: {
           badge:'br', badgeText:'7 etapas',
@@ -147,7 +162,7 @@ const migrate = async () => {
       {
         slug: 'telefonia',
         titulo: 'Configuração de Telefonia VoIP',
-        descricao: 'SIP na ONT Huawei — VLAN 240/20, servidor 187.49.80.21, porta POTS',
+        descricao: 'SIP na ONT Huawei – VLAN 240/20, servidor 187.49.80.21, porta POTS',
         categoria: 'Telefonia',
         conteudo: {
           badge:'bg', badgeText:'6 etapas',
@@ -166,7 +181,7 @@ const migrate = async () => {
       {
         slug: '02bbridge',
         titulo: '02B / HG em Bridge',
-        descricao: 'NE Manager — Port Service Config, CVLAN Tag por porta LAN',
+        descricao: 'NE Manager – Port Service Config, CVLAN Tag por porta LAN',
         categoria: 'Bridge',
         conteudo: {
           badge:'bp', badgeText:'4 etapas',
@@ -190,27 +205,18 @@ const migrate = async () => {
       `, [g.slug, g.titulo, g.descricao, g.categoria, JSON.stringify(g.conteudo)]);
     }
 
-    
-    // Colunas e tabelas extras
-    await client.query(`ALTER TABLE tecnicos ADD COLUMN IF NOT EXISTS raio DOUBLE PRECISION;`);
-    await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{}';`);
-    await client.query(`CREATE TABLE IF NOT EXISTS configuracoes (chave VARCHAR(100) PRIMARY KEY, valor TEXT);`);
-
     await client.query('COMMIT');
     console.log('✅ Migration concluída!');
-    console.log('📧 Admin: admin@dipelnet.com.br');
+    console.log('🔧 Admin: admin@dipelnet.com.br');
     console.log('🔑 Senha: admin123');
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('❌ Erro:', err);
+    console.error('❌ Erro na migration:', err.message);
+    throw err;
   } finally {
     client.release();
-    process.exit(0);
+    await pool.end();
   }
 };
 
 migrate();
-
-
-
-

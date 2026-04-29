@@ -1,15 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Layout      from './components/layout/Layout';
-import Login       from './pages/auth/Login';
-import Dashboard   from './pages/dashboard/Dashboard';
-import Guias       from './pages/guias/Guias';
-import Equipamentos from './pages/equipamentos/Equipamentos';
-import Tecnicos    from './pages/tecnicos/Tecnicos';
-import Mapa        from './pages/mapa/Mapa';
-import Avisos      from './pages/avisos/Avisos';
-import Usuarios    from './pages/usuarios/Usuarios';
-import Reciclagem  from './pages/guias/Reciclagem';
+import Layout        from './components/layout/Layout';
+import Login         from './pages/auth/Login';
+import Dashboard     from './pages/dashboard/Dashboard';
+import Guias         from './pages/guias/Guias';
+import Equipamentos  from './pages/equipamentos/Equipamentos';
+import Tecnicos      from './pages/tecnicos/Tecnicos';
+import Mapa          from './pages/mapa/Mapa';
+import Avisos        from './pages/avisos/Avisos';
+import Usuarios      from './pages/usuarios/Usuarios';
+import Reciclagem    from './pages/guias/Reciclagem';
+import Colaboradores from './pages/colaboradores/Colaboradores';
 
 function ProtectedRoute() {
   const { usuario, carregando } = useAuth();
@@ -32,15 +33,16 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard"    element={<Dashboard />} />
-              <Route path="/guias"        element={<Guias />} />
-              <Route path="/equipamentos" element={<Equipamentos />} />
-              <Route path="/tecnicos"     element={<Tecnicos />} />
-              <Route path="/mapa"         element={<Mapa />} />
-              <Route path="/avisos"       element={<Avisos />} />
+              <Route path="/dashboard"      element={<Dashboard />} />
+              <Route path="/guias"          element={<Guias />} />
+              <Route path="/equipamentos"   element={<Equipamentos />} />
+              <Route path="/tecnicos"       element={<Tecnicos />} />
+              <Route path="/mapa"           element={<Mapa />} />
+              <Route path="/avisos"         element={<Avisos />} />
+              <Route path="/colaboradores"  element={<Colaboradores />} />
               <Route element={<AdminRoute />}>
-                <Route path="/usuarios" element={<Usuarios />} />
-              <Route path="/reciclagem" element={<Reciclagem />} />
+                <Route path="/usuarios"   element={<Usuarios />} />
+                <Route path="/reciclagem" element={<Reciclagem />} />
               </Route>
             </Route>
           </Route>
