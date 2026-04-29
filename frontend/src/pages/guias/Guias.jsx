@@ -62,101 +62,99 @@ const CONTEUDO_LOCAL = {
 };
 
 // ── CHECKLIST CATEGORIAS ──────────────────────────────
+const OBS = 'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.';
+
 const CHECKLIST_CATS = [
   {
     id: 'instalacao', slug: 'checklist-instalacao',
     label: 'Instalação Padrão', cor: '#1a56db',
+    aviso_perigo: OBS,
     steps: [
-      {titulo:'Local do equipamento',descricao:'Equipamento bem instalado em local apropriado, com canaleta, organizador de cabos, centralizado na parede ou balcão. Não pode ficar sobre outros aparelhos eletrônicos.',tip:'Se estiver provisoriamente no chão ou cadeira, registre no checklist e no termo.',imgs:[null,null,null]},
-      {titulo:'Teste de velocidade (print)',descricao:'Realizar com Fast.com ou Speedtest. Confirmar compatibilidade com o plano contratado. Teste deve estar totalmente concluído.',tip:null,imgs:[null,null]},
-      {titulo:'IPv6 funcionando',descricao:'Realizar pelo site test-ipv6.com. Pontuação deve ser 10/10.',tip:null,imgs:[null]},
-      {titulo:'Termo comprovante com documento do cliente',descricao:'Termo preenchido: nome, endereço, protocolo da O.S., assinatura do cliente e da equipe. Foto com o documento visível.',tip:'Atendimentos só podem ser executados com maior de idade no local.',imgs:[null,null]},
-      {titulo:'Análise de Espectro — PingTools',descricao:'Realizar testes no local do equipamento E no último cômodo da residência.',tip:'Consulte o manual de Reciclagem para referência de sinal correto.',imgs:[null,null]},
-      {titulo:'Plaqueta com código do cliente (PDO)',descricao:'Foto mostrando a plaqueta com o código do cliente na porta utilizada do PDO.',tip:null,imgs:[null]},
-      {titulo:'Foto do PDO — numeração',descricao:'Foto mostrando a numeração do PDO claramente visível.',tip:null,imgs:[null]},
-      {titulo:'Metragem do cabo — inicial e final',descricao:'Foto das metragens inicial e final da fibra, conferindo com o IXC.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do PDO — sinal e porta utilizada',descricao:'Power meter mostrando potência e porta utilizada. Verificar se não há perda superior a 1 dB.',tip:'Se houver perda > 1 dB, solicitar regularização à terceirizada.',imgs:[null,null]},
-      {titulo:'Foto do PDO — plaqueta e porta',descricao:'Foto mostrando a plaqueta com o código e a porta utilizada no PDO.',tip:null,imgs:[null]},
-      {titulo:'Foto da fachada',descricao:'Foto da fachada da residência, empresa ou estabelecimento.',tip:null,imgs:[null,null]},
-      {titulo:'Print do sinal da fibra no equipamento',descricao:'Print mostrando o sinal da fibra no equipamento. Deve ser anexado no IXC. Se não for TPLink, tirar print no UNM2000, U2000 ou ACS.',tip:null,imgs:[null,null]},
+      { titulo: 'Local do equipamento',                                          imgs: [null, null, null] },
+      { titulo: 'Teste de Velocidade',                                           imgs: [null, null] },
+      { titulo: 'Teste IPv6',                                                    imgs: [null] },
+      { titulo: 'Termo comprovante de atendimento com Documento',                imgs: [null, null] },
+      { titulo: 'Análise de Espectro (PingTools)',                               imgs: [null, null] },
+      { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
+      { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
+      { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
+      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
+      { titulo: 'Print do sinal da fibra do equipamento',                        imgs: [null, null] },
     ],
-    aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.',
   },
   {
     id: 'predios', slug: 'checklist-predios',
     label: 'Prédios / Pontos Adicionais', cor: '#7c3aed',
+    aviso_perigo: OBS,
     steps: [
-      {titulo:'Local do equipamento',descricao:'Equipamento instalado com canaleta e organizado.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de velocidade (print)',descricao:'Fast.com ou Speedtest, compatível com o plano contratado.',tip:null,imgs:[null,null]},
-      {titulo:'IPv6 funcionando',descricao:'test-ipv6.com — pontuação 10/10.',tip:null,imgs:[null]},
-      {titulo:'Termo comprovante com documento do cliente',descricao:'Termo preenchido com foto do documento visível.',tip:null,imgs:[null,null]},
-      {titulo:'Análise de Espectro — PingTools',descricao:'Testes no local do equipamento e no último cômodo.',tip:null,imgs:[null,null]},
-      {titulo:'Plaqueta com código do cliente (PDO)',descricao:'Foto da plaqueta na porta utilizada do PDO.',tip:null,imgs:[null]},
-      {titulo:'Foto do PDO — numeração',descricao:'Foto mostrando a numeração do PDO.',tip:null,imgs:[null]},
-      {titulo:'Metragem da fibra — inicial e final',descricao:'Fotos das metragens inicial e final.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do PDO — sinal e porta',descricao:'Power meter com potência e porta visíveis.',tip:null,imgs:[null]},
-      {titulo:'Foto do PDO — plaqueta e porta',descricao:'Plaqueta com código e porta utilizada.',tip:null,imgs:[null]},
-      {titulo:'Print do sinal da fibra no equipamento',descricao:'Print do sinal no equipamento, anexado no IXC.',tip:null,imgs:[null]},
-      {titulo:'Foto da fachada',descricao:'Foto da fachada do local.',tip:null,imgs:[null]},
-      {titulo:'Foto dos DG e Caixa de passagens',descricao:'Fibra bem acomodada no DG ou caixa de passagem. Verificar quantidade no checklist.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do local do Ponto adicional',descricao:'Roteador: com canaleta, organizado e bem posicionado.\nCabo: sobra adequada, tampa fechada corretamente.',tip:null,imgs:[null,null]},
-      {titulo:'Metragem do cabo de rede — inicial e final',descricao:'Válido para ambos os pontos adicionais. Conferir com o IXC.',tip:null,imgs:[null,null]},
+      { titulo: 'Local do equipamento',                                          imgs: [null, null, null] },
+      { titulo: 'Teste de Velocidade',                                           imgs: [null, null] },
+      { titulo: 'Teste IPv6',                                                    imgs: [null] },
+      { titulo: 'Termo comprovante de atendimento com Documento',                imgs: [null, null] },
+      { titulo: 'Análise de Espectro (PingTools)',                               imgs: [null, null] },
+      { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
+      { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
+      { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
+      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
+      { titulo: 'Print do sinal da fibra do equipamento',                        imgs: [null, null] },
+      { titulo: 'Foto dos DG e Caixa de passagens',                              imgs: [null, null] },
+      { titulo: 'Foto do local do Ponto adicional (Roteador ou Cabo)',           imgs: [null, null] },
+      { titulo: 'Metragem inicial e final do cabo de rede',                      imgs: [null, null] },
     ],
-    aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.',
   },
   {
     id: 'loss_ponteiras', slug: 'checklist-loss-ponteiras',
     label: 'LOSS — Ponteiras / Sinal Alto', cor: '#d97706',
+    aviso_perigo: OBS,
     steps: [
-      {titulo:'Local do equipamento',descricao:'Foto do local onde o equipamento está instalado.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de velocidade (print)',descricao:'Fast.com ou Speedtest, compatível com o plano.',tip:null,imgs:[null,null]},
-      {titulo:'IPv6 funcionando',descricao:'test-ipv6.com — pontuação 10/10.',tip:null,imgs:[null]},
-      {titulo:'Termo comprovante com documento do cliente',descricao:'Termo preenchido com foto do documento visível.',tip:null,imgs:[null,null]},
-      {titulo:'Análise de Espectro — PingTools',descricao:'Testes no local do equipamento e no último cômodo.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de PING no CMD ou PingTools',descricao:'Print do teste de ping realizado.',tip:null,imgs:[null]},
-      {titulo:'Plaqueta com código do cliente (PDO)',descricao:'Se o atendimento foi no PDO: foto da plaqueta.',tip:null,imgs:[null]},
-      {titulo:'Foto do PDO — sinal e porta (se foi no PDO)',descricao:'Power meter com potência e porta. Verificar perda não superior a 1 dB.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do PDO — plaqueta e porta (se foi no PDO)',descricao:'Plaqueta com código e porta utilizada.',tip:null,imgs:[null]},
-      {titulo:'Print do sinal da fibra no equipamento',descricao:'Print do sinal, anexado no IXC.',tip:null,imgs:[null,null]},
-      {titulo:'Local onde estava a atenuação (se houver)',descricao:'Foto ampla e foto detalhada mostrando onde estava a atenuação.',tip:null,imgs:[null,null]},
+      { titulo: 'Local do equipamento',                                                          imgs: [null, null] },
+      { titulo: 'Teste de Velocidade',                                                           imgs: [null, null] },
+      { titulo: 'Teste IPv6',                                                                    imgs: [null] },
+      { titulo: 'Termo comprovante de atendimento com Documento',                                imgs: [null, null] },
+      { titulo: 'Análise de Espectro (PingTools)',                                               imgs: [null, null] },
+      { titulo: 'Teste de PING no CMD ou no PingTools',                                          imgs: [null] },
+      { titulo: 'Plaqueta com Código do Cliente PDO — Se o mesmo foi no PDO',                   imgs: [null] },
+      { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada — Se foi no PDO',    imgs: [null, null] },
+      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada — Se foi no PDO',   imgs: [null] },
+      { titulo: 'Print do sinal da fibra do equipamento',                                        imgs: [null, null] },
+      { titulo: 'Local onde está a atenuação (caso tenha)',                                      imgs: [null, null] },
     ],
-    aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.',
   },
   {
     id: 'loss_relancamentos', slug: 'checklist-loss-relancamentos',
     label: 'LOSS — Relançamentos', cor: '#dc2626',
+    aviso_perigo: OBS,
     steps: [
-      {titulo:'Local do equipamento',descricao:'Foto do local onde o equipamento está instalado.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de velocidade (print)',descricao:'Fast.com ou Speedtest, compatível com o plano.',tip:null,imgs:[null,null]},
-      {titulo:'IPv6 funcionando',descricao:'test-ipv6.com — pontuação 10/10.',tip:null,imgs:[null]},
-      {titulo:'Termo comprovante com documento do cliente',descricao:'Termo preenchido com foto do documento visível.',tip:null,imgs:[null,null]},
-      {titulo:'Análise de Espectro — PingTools',descricao:'Testes no local do equipamento e no último cômodo.',tip:null,imgs:[null,null]},
-      {titulo:'Plaqueta com código do cliente (PDO)',descricao:'Foto da plaqueta na porta utilizada.',tip:null,imgs:[null]},
-      {titulo:'Foto do PDO — sinal e porta',descricao:'Power meter com potência e porta. Verificar perda não superior a 1 dB.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do PDO — plaqueta e porta',descricao:'Plaqueta com código e porta utilizada.',tip:null,imgs:[null]},
-      {titulo:'Print do sinal da fibra no equipamento',descricao:'Print do sinal, anexado no IXC.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de PING no CMD ou PingTools',descricao:'Print do teste de ping.',tip:null,imgs:[null]},
-      {titulo:'Metragem da fibra — inicial e final',descricao:'Fotos das metragens, conferindo com o IXC.',tip:null,imgs:[null,null]},
-      {titulo:'Foto da emenda (se houver)',descricao:'Foto ampla e foto detalhada de como ficou por dentro da emenda.',tip:'Verificar observação no checklist.',imgs:[null,null]},
-      {titulo:'Foto dos DG e Caixa de passagens',descricao:'Fibra bem acomodada. Verificar quantidade no checklist.',tip:null,imgs:[null,null]},
+      { titulo: 'Local do equipamento',                                          imgs: [null, null] },
+      { titulo: 'Teste de Velocidade',                                           imgs: [null, null] },
+      { titulo: 'Teste IPv6',                                                    imgs: [null] },
+      { titulo: 'Termo comprovante de atendimento com Documento',                imgs: [null, null] },
+      { titulo: 'Análise de Espectro (PingTools)',                               imgs: [null, null] },
+      { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
+      { titulo: 'Teste de PING no CMD ou no PingTools',                          imgs: [null] },
+      { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
+      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
+      { titulo: 'Print do sinal da fibra do equipamento',                        imgs: [null, null] },
+      { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
+      { titulo: 'Foto da emenda caso tenha (Verificar observação do checklist)', imgs: [null, null] },
+      { titulo: 'Foto dos DG e Caixa de passagens',                              imgs: [null, null] },
     ],
-    aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.',
   },
   {
     id: 'suporte_geral', slug: 'checklist-suporte-geral',
     label: 'Suporte Geral / Ponto Adicional', cor: '#059669',
+    aviso_perigo: OBS,
     steps: [
-      {titulo:'Local do equipamento',descricao:'Foto do local onde o equipamento está instalado.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de velocidade (print)',descricao:'Fast.com ou Speedtest, compatível com o plano.',tip:null,imgs:[null,null]},
-      {titulo:'IPv6 funcionando',descricao:'test-ipv6.com — pontuação 10/10.',tip:null,imgs:[null]},
-      {titulo:'Termo comprovante com documento do cliente',descricao:'Termo preenchido com foto do documento visível.',tip:null,imgs:[null,null]},
-      {titulo:'Análise de Espectro — PingTools',descricao:'Testes no local do equipamento e no último cômodo.',tip:null,imgs:[null,null]},
-      {titulo:'Teste de PING no CMD ou PingTools',descricao:'Print do teste de ping.',tip:null,imgs:[null]},
-      {titulo:'Print do sinal da fibra no equipamento',descricao:'Print do sinal, anexado no IXC.',tip:null,imgs:[null,null]},
-      {titulo:'Foto do Ponto adicional (se houver)',descricao:'Roteador ou cabo: instalado com canaleta e bem posicionado.',tip:null,imgs:[null,null]},
-      {titulo:'Metragem do cabo de rede — inicial e final (se houver)',descricao:'Válido para ambos os pontos adicionais.',tip:null,imgs:[null,null]},
+      { titulo: 'Local do equipamento',                                                          imgs: [null, null] },
+      { titulo: 'Teste de Velocidade',                                                           imgs: [null, null] },
+      { titulo: 'Teste IPv6',                                                                    imgs: [null] },
+      { titulo: 'Termo comprovante de atendimento com Documento',                                imgs: [null, null] },
+      { titulo: 'Análise de Espectro (PingTools)',                                               imgs: [null, null] },
+      { titulo: 'Teste de PING no CMD ou no PingTools',                                          imgs: [null] },
+      { titulo: 'Print do sinal da fibra do equipamento',                                        imgs: [null, null] },
+      { titulo: 'Foto do local do Ponto adicional (Roteador ou Cabo) — Caso tenha',             imgs: [null, null] },
+      { titulo: 'Metragem inicial e final do cabo de rede — Caso tenha',                        imgs: [null, null] },
     ],
-    aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.',
   },
 ];
 
@@ -171,7 +169,6 @@ const CAT_CLS = {
   'Ativação':  'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
   'Telefonia': 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   'Bridge':    'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300',
-  'Checklist': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 const BC = {
   bb:'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300',
@@ -181,7 +178,7 @@ const BC = {
   bc:'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
 };
 
-// ── GALERIA DE FOTOS ──────────────────────────────────
+// ── GALERIA ───────────────────────────────────────────
 function Gallery({ imgs, stepIdx, isAdmin, onUpload, onRemove }) {
   if (!imgs || imgs.length === 0) return null;
   return (
@@ -221,25 +218,23 @@ function Gallery({ imgs, stepIdx, isAdmin, onUpload, onRemove }) {
   );
 }
 
-// ── VISUALIZADOR GENÉRICO (guia técnico ou checklist) ─
-function GuiaView({ titulo, cont, onVoltar, isAdmin, onUpload, onRemove, tabsChecklist }) {
+// ── VISUALIZADOR ──────────────────────────────────────
+function GuiaView({ titulo, cont, badge, badgeText, onVoltar, isAdmin, onUpload, onRemove, header }) {
   const steps = cont.steps || [];
   return (
     <div>
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
         <button onClick={onVoltar} className="text-blue-600 dark:text-blue-400 hover:underline">Guias</button>
         <span>/</span>
         <span className="text-gray-900 dark:text-gray-100 font-medium truncate">{titulo}</span>
       </div>
 
-      {/* Abas do checklist (só aparece quando é checklist) */}
-      {tabsChecklist}
+      {header}
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{titulo}</div>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[cont.badge]||BC.bb}`}>{cont.badgeText}</span>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[badge]||BC.bb}`}>{badgeText}</span>
         </div>
 
         <div className="p-5 lg:p-6">
@@ -255,7 +250,7 @@ function GuiaView({ titulo, cont, onVoltar, isAdmin, onUpload, onRemove, tabsChe
               <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{i+1}</div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1.5">{s.titulo}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>
+                {s.descricao && <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{s.descricao}</div>}
                 {s.tip && (
                   <div className="flex gap-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300 rounded-lg p-2.5 text-xs mt-2.5">
                     <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -284,19 +279,18 @@ export default function Guias() {
   const { temRole } = useAuth();
   const isAdmin = temRole('admin','gestor');
 
-  const [guias, setGuias]         = useState([]);
-  const [busca, setBusca]         = useState('');
-  const [atual, setAtual]         = useState(null);   // guia técnico selecionado
-  const [cont, setCont]           = useState(null);
-  const [verChecklist, setVerChecklist] = useState(false);
-  const [catAtiva, setCatAtiva]   = useState(CHECKLIST_CATS[0].id);
+  const [guias, setGuias]       = useState([]);
+  const [busca, setBusca]       = useState('');
+  const [atual, setAtual]       = useState(null);
+  const [cont, setCont]         = useState(null);
+  const [verChecklist, setVerChecklist]   = useState(false);
+  const [catAtiva, setCatAtiva] = useState(CHECKLIST_CATS[0].id);
   const [checklistConts, setChecklistConts] = useState({});
 
   useEffect(() => {
     api.get('/guias').then(r => setGuias(r.data.length ? r.data : GUIAS_LOCAL)).catch(() => setGuias(GUIAS_LOCAL));
   }, []);
 
-  // Carrega fotos do banco para o checklist
   useEffect(() => {
     if (!verChecklist) return;
     CHECKLIST_CATS.forEach(cat => {
@@ -334,7 +328,6 @@ export default function Guias() {
     window.scrollTo(0, 0);
   };
 
-  // Upload para guia técnico
   const uploadGuia = (stepIdx, imgIdx) => {
     if (!CLOUD_NAME) { alert('Configure VITE_CLOUDINARY_CLOUD_NAME'); return; }
     if (typeof cloudinary === 'undefined') { alert('Widget Cloudinary não carregado.'); return; }
@@ -365,7 +358,6 @@ export default function Guias() {
     });
   };
 
-  // Upload para checklist
   const uploadChecklist = (catId, catSlug) => (stepIdx, imgIdx) => {
     if (!CLOUD_NAME) { alert('Configure VITE_CLOUDINARY_CLOUD_NAME'); return; }
     if (typeof cloudinary === 'undefined') { alert('Widget Cloudinary não carregado.'); return; }
@@ -378,6 +370,7 @@ export default function Guias() {
       const url = res.info.secure_url;
       setChecklistConts(prev => {
         const c = JSON.parse(JSON.stringify(prev));
+        if (!c[catId]) return prev;
         if (!c[catId].steps[stepIdx].imgs) c[catId].steps[stepIdx].imgs = [];
         if (imgIdx < c[catId].steps[stepIdx].imgs.length) c[catId].steps[stepIdx].imgs[imgIdx] = url;
         else c[catId].steps[stepIdx].imgs.push(url);
@@ -396,12 +389,12 @@ export default function Guias() {
     });
   };
 
-  // ── CHECKLIST VIEW (com abas) ──
+  // ── CHECKLIST VIEW ──
   if (verChecklist) {
     const catAtual = CHECKLIST_CATS.find(c => c.id === catAtiva);
     const contAtual = checklistConts[catAtiva] || catAtual;
 
-    const tabsEl = (
+    const tabs = (
       <div className="flex flex-wrap gap-2 mb-4">
         {CHECKLIST_CATS.map(cat => {
           const ativa = catAtiva === cat.id;
@@ -416,22 +409,17 @@ export default function Guias() {
       </div>
     );
 
-    const contView = {
-      ...contAtual,
-      badge: 'bc',
-      badgeText: `${contAtual.steps.length} itens`,
-      alerta: null,
-    };
-
     return (
       <GuiaView
         titulo={catAtual.label}
-        cont={contView}
+        cont={{ ...contAtual, alerta: null }}
+        badge="bc"
+        badgeText={`${contAtual.steps.length} itens`}
         onVoltar={() => setVerChecklist(false)}
         isAdmin={isAdmin}
         onUpload={uploadChecklist(catAtiva, catAtual.slug)}
         onRemove={removerChecklist(catAtiva)}
-        tabsChecklist={tabsEl}
+        header={tabs}
       />
     );
   }
@@ -442,11 +430,13 @@ export default function Guias() {
       <GuiaView
         titulo={atual.titulo}
         cont={cont}
+        badge={cont.badge}
+        badgeText={cont.badgeText}
         onVoltar={() => { setAtual(null); setCont(null); }}
         isAdmin={isAdmin}
         onUpload={uploadGuia}
         onRemove={removerGuia}
-        tabsChecklist={null}
+        header={null}
       />
     );
   }
@@ -459,7 +449,6 @@ export default function Guias() {
 
   return (
     <div>
-      {/* Busca */}
       <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 mb-4">
         <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar guia..."
@@ -467,7 +456,7 @@ export default function Guias() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {/* ── 1 CARD DO CHECKLIST ── */}
+        {/* 1 card checklist */}
         <div onClick={() => setVerChecklist(true)}
           className="bg-white dark:bg-gray-900 border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all">
           <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
@@ -487,7 +476,7 @@ export default function Guias() {
           <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-        {/* ── GUIAS TÉCNICOS ── */}
+        {/* Guias técnicos */}
         <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest px-1 mt-2 mb-1">Guias Técnicos</div>
         {guiasFiltrados.map(g => {
           const c = CONTEUDO_LOCAL[g.slug] || {};
