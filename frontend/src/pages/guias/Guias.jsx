@@ -104,7 +104,7 @@ const CHECKLIST_CATS = [
   },
   {
     id: 'loss_ponteiras', slug: 'checklist-loss-ponteiras',
-    label: 'LOSS — Ponteiras / Sinal Alto', cor: '#d97706',
+    label: 'LOSS — Ponteiras / Sinal Alto / Relançamentos', cor: '#d97706',
     aviso_perigo: OBS,
     steps: [
       { titulo: 'Local do equipamento',                                                          imgs: [null, null] },
@@ -118,26 +118,9 @@ const CHECKLIST_CATS = [
       { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada — Se foi no PDO',   imgs: [null] },
       { titulo: 'Print do sinal da fibra do equipamento',                                        imgs: [null, null] },
       { titulo: 'Local onde está a atenuação (caso tenha)',                                      imgs: [null, null] },
-    ],
-  },
-  {
-    id: 'loss_relancamentos', slug: 'checklist-loss-relancamentos',
-    label: 'LOSS — Relançamentos', cor: '#dc2626',
-    aviso_perigo: OBS,
-    steps: [
-      { titulo: 'Local do equipamento',                                          imgs: [null, null] },
-      { titulo: 'Teste de Velocidade',                                           imgs: [null, null] },
-      { titulo: 'Teste IPv6',                                                    imgs: [null] },
-      { titulo: 'Termo comprovante de atendimento com Documento',                imgs: [null, null] },
-      { titulo: 'Análise de Espectro (PingTools)',                               imgs: [null, null] },
-      { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
-      { titulo: 'Teste de PING no CMD ou no PingTools',                          imgs: [null] },
-      { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
-      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
-      { titulo: 'Print do sinal da fibra do equipamento',                        imgs: [null, null] },
-      { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
-      { titulo: 'Foto da emenda caso tenha (Verificar observação do checklist)', imgs: [null, null] },
-      { titulo: 'Foto dos DG e Caixa de passagens',                              imgs: [null, null] },
+      { titulo: 'Metragem inicial e final da Fibra',                                             imgs: [null, null] },
+      { titulo: 'Foto da emenda caso tenha (Verificar observação do checklist)',                 imgs: [null, null] },
+      { titulo: 'Foto dos DG e Caixa de passagens',                                              imgs: [null, null] },
     ],
   },
   {
