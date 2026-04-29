@@ -75,7 +75,7 @@ const CHECKLIST_CATS = [
       { titulo: 'Teste IPv6',                                                    imgs: [null] },
       { titulo: 'Termo comprovante de atendimento com Documento',                imgs: [null, null] },
       { titulo: 'Análise de Espectro (PingTools)',                               imgs: [null, null] },
-      { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
+      { titulo: 'Plaqueta de identificação do provedor',                         imgs: [null] }, // ← texto alterado
       { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
       { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
       { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
@@ -95,9 +95,8 @@ const CHECKLIST_CATS = [
       { titulo: 'Plaqueta com Código do Cliente PDO',                            imgs: [null] },
       { titulo: 'Metragem inicial e final da Fibra',                             imgs: [null, null] },
       { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada',     imgs: [null, null] },
-      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada',    imgs: [null] },
+      // ← "Foto da plaqueta com o código aparecendo a porta utilizada" REMOVIDO
       { titulo: 'Print do sinal da fibra do equipamento',                        imgs: [null, null] },
-      { titulo: 'Foto dos DG e Caixa de passagens',                              imgs: [null, null] },
       { titulo: 'Foto do local do Ponto adicional (Roteador ou Cabo)',           imgs: [null, null] },
       { titulo: 'Metragem inicial e final do cabo de rede',                      imgs: [null, null] },
     ],
@@ -115,30 +114,15 @@ const CHECKLIST_CATS = [
       { titulo: 'Teste de PING no CMD ou no PingTools',                                          imgs: [null] },
       { titulo: 'Plaqueta com Código do Cliente PDO — Se o mesmo foi no PDO',                   imgs: [null] },
       { titulo: 'Foto do sinal do Power meter aparecendo a porta utilizada — Se foi no PDO',    imgs: [null, null] },
-      { titulo: 'Foto da plaqueta com o código aparecendo a porta utilizada — Se foi no PDO',   imgs: [null] },
+      { titulo: 'Foto da plaqueta de identificação do provedor',                                 imgs: [null] }, // ← texto alterado
       { titulo: 'Print do sinal da fibra do equipamento',                                        imgs: [null, null] },
       { titulo: 'Local onde está a atenuação (caso tenha)',                                      imgs: [null, null] },
       { titulo: 'Metragem inicial e final da Fibra',                                             imgs: [null, null] },
       { titulo: 'Foto da emenda caso tenha (Verificar observação do checklist)',                 imgs: [null, null] },
-      { titulo: 'Foto dos DG e Caixa de passagens',                                              imgs: [null, null] },
+      // ← "Foto dos DG e Caixa de passagens" REMOVIDO
     ],
   },
-  {
-    id: 'suporte_geral', slug: 'checklist-suporte-geral',
-    label: 'Suporte Geral / Ponto Adicional', cor: '#059669',
-    aviso_perigo: OBS,
-    steps: [
-      { titulo: 'Local do equipamento',                                                          imgs: [null, null] },
-      { titulo: 'Teste de Velocidade',                                                           imgs: [null, null] },
-      { titulo: 'Teste IPv6',                                                                    imgs: [null] },
-      { titulo: 'Termo comprovante de atendimento com Documento',                                imgs: [null, null] },
-      { titulo: 'Análise de Espectro (PingTools)',                                               imgs: [null, null] },
-      { titulo: 'Teste de PING no CMD ou no PingTools',                                          imgs: [null] },
-      { titulo: 'Print do sinal da fibra do equipamento',                                        imgs: [null, null] },
-      { titulo: 'Foto do local do Ponto adicional (Roteador ou Cabo) — Caso tenha',             imgs: [null, null] },
-      { titulo: 'Metragem inicial e final do cabo de rede — Caso tenha',                        imgs: [null, null] },
-    ],
-  },
+  // ← Suporte Geral / Ponto Adicional REMOVIDO
 ];
 
 const GUIAS_LOCAL = [
@@ -163,39 +147,44 @@ const BC = {
 
 // ── GALERIA ───────────────────────────────────────────
 function Gallery({ imgs, stepIdx, isAdmin, onUpload, onRemove }) {
-  if (!imgs || imgs.length === 0) return null;
+  // Só mostra fotos que já foram enviadas (não nulos)
+  const fotos = (imgs || []).map((url, idx) => ({ url, idx })).filter(f => f.url);
+  const total = fotos.length;
+
   return (
     <div className="mt-3">
-      <div className={`grid gap-2 ${imgs.length === 1 ? 'grid-cols-1' : imgs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-        {imgs.map((url, idx) => (
-          <div key={idx} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden relative bg-gray-50 dark:bg-gray-800">
-            {url ? (
-              <>
-                <img src={url} alt={`foto ${idx+1}`} onClick={() => window.open(url,'_blank')}
-                  className="w-full block object-contain cursor-pointer bg-gray-900"
-                  style={{maxHeight: imgs.length===1 ? 300 : 180}}/>
-                {isAdmin && (
-                  <div className="absolute top-1.5 right-1.5 flex gap-1">
-                    <button onClick={() => onUpload(stepIdx,idx)} className="bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">Trocar</button>
-                    <button onClick={() => onRemove(stepIdx,idx)} className="bg-red-600/80 text-white text-[10px] px-1.5 py-0.5 rounded">×</button>
-                  </div>
-                )}
-                {imgs.length > 1 && <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white text-[10px] px-1.5 py-0.5 rounded font-semibold">{idx+1}/{imgs.length}</div>}
-              </>
-            ) : (
-              <div className="p-4 flex flex-col items-center justify-center gap-1.5 min-h-[80px]">
-                <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <span className="text-[10px] text-gray-400 text-center">{imgs.length>1?`Foto ${idx+1}/${imgs.length}`:'Foto de exemplo'}</span>
-                {isAdmin && <button onClick={() => onUpload(stepIdx,idx)} className="mt-1 px-2 py-0.5 rounded bg-blue-600 text-white text-[11px] font-medium">Enviar</button>}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {total > 0 && (
+        <div className={`grid gap-2 mb-1.5 ${total === 1 ? 'grid-cols-1' : total === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          {fotos.map(({ url, idx }) => (
+            <div key={idx} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden relative bg-gray-50 dark:bg-gray-800">
+              <img src={url} alt={`foto ${idx+1}`} onClick={() => window.open(url,'_blank')}
+                className="w-full block object-contain cursor-pointer bg-gray-900"
+                style={{maxHeight: total === 1 ? 300 : 180}}/>
+              {isAdmin && (
+                <div className="absolute top-1.5 right-1.5 flex gap-1">
+                  <button onClick={() => onUpload(stepIdx, idx)} className="bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">Trocar</button>
+                  <button onClick={() => onRemove(stepIdx, idx)} className="bg-red-600/80 text-white text-[10px] px-1.5 py-0.5 rounded">×</button>
+                </div>
+              )}
+              {total > 1 && <div className="absolute bottom-1.5 left-1.5 bg-black/55 text-white text-[10px] px-1.5 py-0.5 rounded font-semibold">{idx+1}/{total}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {isAdmin && (
-        <button onClick={() => onUpload(stepIdx, imgs.length)} className="mt-1.5 flex items-center gap-1 px-2.5 py-1 rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-[11px] hover:border-blue-400 transition-colors">
-          + Adicionar foto
+        <button
+          onClick={() => onUpload(stepIdx, imgs ? imgs.length : 0)}
+          className="flex items-center gap-1 px-2.5 py-1 rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 text-[11px] hover:border-blue-400 transition-colors">
+          {total === 0 ? '📷 Enviar foto' : '+ Adicionar foto'}
         </button>
+      )}
+
+      {!isAdmin && total === 0 && (
+        <div className="p-4 flex flex-col items-center justify-center gap-1.5 min-h-[60px] rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
+          <svg className="w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span className="text-[10px] text-gray-400">Sem foto</span>
+        </div>
       )}
     </div>
   );
@@ -439,7 +428,6 @@ export default function Guias() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {/* 1 card checklist */}
         <div onClick={() => setVerChecklist(true)}
           className="bg-white dark:bg-gray-900 border-2 border-emerald-300 dark:border-emerald-700 rounded-xl p-4 flex items-start gap-3 cursor-pointer hover:border-emerald-500 hover:shadow-md transition-all">
           <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
@@ -459,7 +447,6 @@ export default function Guias() {
           <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><polyline points="9 18 15 12 9 6"/></svg>
         </div>
 
-        {/* Guias técnicos */}
         <div className="text-xs font-semibold text-gray-400 uppercase tracking-widest px-1 mt-2 mb-1">Guias Técnicos</div>
         {guiasFiltrados.map(g => {
           const c = CONTEUDO_LOCAL[g.slug] || {};
