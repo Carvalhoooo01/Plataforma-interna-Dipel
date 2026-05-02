@@ -187,6 +187,12 @@ export default function Tecnicos() {
     catch { alert('Erro ao remover'); }
   };
 
+  const abrirWhatsApp = (telefone) => {
+    const num  = telefone.replace(/\D/g, '');
+    const fone = num.startsWith('55') ? num : '55' + num;
+    window.open(`https://wa.me/${fone}`, '_blank');
+  };
+
   const inp = { width:'100%', padding:'8px 11px', border:`1px solid ${c.inputBorder}`, borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box', background:c.inputBg, color:c.text };
   const lbl = { display:'block', fontSize:11, fontWeight:600, color:c.textSub, marginBottom:5, textTransform:'uppercase', letterSpacing:.4 };
 
@@ -204,6 +210,7 @@ export default function Tecnicos() {
         {lista.map((t, i) => {
           const [abg, aco] = AV_CLS[i%AV_CLS.length];
           const [sbg, sco] = ST_BADGE[t.status]||['#f3f4f6','#374151'];
+          const temAcoes   = podeEdit || podeExcl || t.telefone;
           return (
             <div key={t.id||i} style={{ background:c.card, border:`1px solid ${c.cardBorder}`, borderRadius:10, padding:16, boxShadow:'0 1px 3px rgba(0,0,0,.08)' }}>
               <div style={{ display:'flex', gap:11, alignItems:'flex-start', marginBottom:10 }}>
@@ -217,8 +224,20 @@ export default function Tecnicos() {
               <div style={{ display:'flex', flexWrap:'wrap', gap:4, marginBottom:10 }}>
                 {(t.regioes||[]).map(r => <span key={r} style={{ fontSize:11, padding:'2px 7px', background:c.tagBg, color:c.tagColor, borderRadius:20, fontWeight:500 }}>{r}</span>)}
               </div>
-              {(podeEdit || podeExcl) && (
+              {temAcoes && (
                 <div style={{ display:'flex', gap:6, paddingTop:10, borderTop:`1px solid ${c.cardBorder}`, justifyContent:'flex-end' }}>
+                  {t.telefone && (
+                    <button
+                      onClick={() => abrirWhatsApp(t.telefone)}
+                      style={{ background:'#25d366', color:'#fff', border:'none', borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.528 5.849L.057 23.57a.75.75 0 00.918.913l5.84-1.527A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.708 9.708 0 01-4.951-1.354l-.355-.211-3.674.961.978-3.58-.231-.367A9.709 9.709 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+                      </svg>
+                      WhatsApp
+                    </button>
+                  )}
                   {podeEdit && (
                     <button onClick={() => abrirModal(t)} style={{ background:'transparent', border:`1px solid ${c.cardBorder}`, borderRadius:7, padding:'5px 11px', fontSize:12, cursor:'pointer', color:c.text }}>Editar</button>
                   )}
