@@ -191,7 +191,7 @@ function Gallery({ imgs, stepIdx, isAdmin, onUpload, onRemove }) {
 }
 
 // ── VISUALIZADOR ──────────────────────────────────────
-function GuiaView({ titulo, cont, badge, badgeText, onVoltar, isAdmin, onUpload, onRemove, header }) {
+function GuiaView({ titulo, cont, badge, badgeText, onVoltar, isAdmin, onUpload, onRemove, header, onExportar }) {
   const steps = cont.steps || [];
   return (
     <div>
@@ -206,7 +206,16 @@ function GuiaView({ titulo, cont, badge, badgeText, onVoltar, isAdmin, onUpload,
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="text-base font-semibold text-gray-900 dark:text-gray-100">{titulo}</div>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[badge]||BC.bb}`}>{badgeText}</span>
+          <div className="flex items-center gap-2">
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${BC[badge]||BC.bb}`}>{badgeText}</span>
+            {onExportar && (
+              <button onClick={onExportar}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Exportar PDF
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="p-5 lg:p-6">
@@ -423,6 +432,58 @@ export default function Guias() {
   };
 
 
+  const exportarGuia = (titulo, steps, aviso_perigo) => {
+    const data = new Date().toLocaleDateString('pt-BR');
+
+    const gerarPDF = () => {
+      let stepsHtml = '';
+      steps.forEach((s, i) => {
+        const fotos = (s.imgs || []).filter(u => u);
+        const fotosHtml = fotos.length > 0
+          ? fotos.map(url => '<img src="' + url + '" crossorigin="anonymous" style="width:170px;height:128px;object-fit:cover;border:1px solid #ddd;border-radius:6px;"/>').join('')
+          : '';
+        const descHtml = s.descricao ? '<div style="font-size:11px;color:#444;white-space:pre-line;margin-bottom:6px;">' + s.descricao + '</div>' : '';
+        stepsHtml += '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #e5e7eb;">'
+          + '<div style="width:26px;height:26px;border-radius:50%;background:#1a56db;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + (i + 1) + '</div>'
+          + '<div style="flex:1;">'
+          + '<div style="font-weight:600;font-size:12px;margin-bottom:4px;">' + s.titulo + '</div>'
+          + descHtml
+          + (fotosHtml ? '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + fotosHtml + '</div>' : '')
+          + '</div></div>';
+      });
+
+      const el = document.createElement('div');
+      el.style.cssText = 'font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px;width:210mm;';
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a56db;padding-bottom:10px;margin-bottom:20px;">'
+        + '<div><div style="font-size:18px;font-weight:700;color:#1a56db;">' + titulo + '</div>'
+        + '<div style="font-size:10px;color:#666;margin-top:3px;">Dipelnet — Guia Técnico</div></div>'
+        + '<div style="font-size:10px;color:#666;text-align:right;">Data: ' + data + '</div>'
+        + '</div>'
+        + stepsHtml
+        + (aviso_perigo ? '<div style="margin-top:20px;padding:10px 14px;background:#fee2e2;border-left:4px solid #dc2626;font-size:10px;color:#991b1b;">' + aviso_perigo + '</div>' : '')
+        + '<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;">Gerado em ' + data + ' — Plataforma Interna Dipelnet</div>';
+
+      document.body.appendChild(el);
+      window.html2pdf().set({
+        margin:      [8, 8, 8, 8],
+        filename:    titulo.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf',
+        image:       { type: 'jpeg', quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(el).save().then(() => document.body.removeChild(el));
+    };
+
+    if (window.html2pdf) {
+      gerarPDF();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = gerarPDF;
+      document.head.appendChild(script);
+    }
+  };
+
+
   // ── CHECKLIST VIEW ──
   if (verChecklist) {
     const catAtual = CHECKLIST_CATS.find(c => c.id === catAtiva);
@@ -463,6 +524,7 @@ export default function Guias() {
         onUpload={uploadChecklist(catAtiva, catAtual.slug)}
         onRemove={removerChecklist(catAtiva, catAtual.slug)}
         header={tabs}
+        onExportar={exportarPDF}
       />
     );
   }
@@ -480,6 +542,7 @@ export default function Guias() {
         onUpload={uploadGuia}
         onRemove={removerGuia}
         header={null}
+        onExportar={() => exportarGuia(atual.titulo, cont.steps || [], cont.aviso_perigo)}
       />
     );
   }
