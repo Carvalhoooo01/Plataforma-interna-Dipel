@@ -276,7 +276,7 @@ r.delete('/equipamentos/:id', autenticar, async (req, res) => {
 // ── GUIAS ─────────────────────────────────────────────
 r.get('/guias', autenticar, async (req, res) => {
   try {
-    const { rows } = await pool.query(`SELECT id,slug,titulo,descricao,categoria,conteudo,status,atualizado_em FROM guias WHERE status='Ativo' ORDER BY criado_em`);
+    const { rows } = await pool.query(`SELECT id,slug,titulo,descricao,categoria,conteudo,status,atualizado_em FROM guias WHERE status='Ativo' AND categoria != 'Checklist' ORDER BY criado_em`);
     res.json(rows);
   } catch { res.status(500).json({ erro: 'Erro ao listar guias' }); }
 });

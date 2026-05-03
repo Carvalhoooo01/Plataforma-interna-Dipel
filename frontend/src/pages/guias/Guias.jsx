@@ -366,23 +366,90 @@ export default function Guias() {
     try { await api.put(`/guias/${catSlug}/imagem`, { step_index: stepIdx, img_index: imgIdx, url: null }); } catch {}
   };
 
+
+  const exportarPDF = () => {
+    const catAtual  = CHECKLIST_CATS.find(c => c.id === catAtiva);
+    const contAtual = checklistConts[catAtiva] || catAtual;
+    const data      = new Date().toLocaleDateString('pt-BR');
+
+    let stepsHtml = '';
+    contAtual.steps.forEach((s, i) => {
+      const fotos = (s.imgs || []).filter(u => u);
+      const fotosHtml = fotos.length > 0
+        ? fotos.map(url => '<img src="' + url + '" class="photo"/>').join('')
+        : '<div class="no-photo">Sem foto</div>';
+      stepsHtml += '<div class="step">'
+        + '<div class="num">' + (i + 1) + '</div>'
+        + '<div class="step-body">'
+        + '<div class="step-title">' + s.titulo + '</div>'
+        + '<div class="photos">' + fotosHtml + '</div>'
+        + '</div></div>';
+    });
+
+    const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
+      + '<title>Checklist — ' + catAtual.label + '</title>'
+      + '<style>'
+      + '* { margin:0; padding:0; box-sizing:border-box; }'
+      + 'body { font-family:Arial,sans-serif; font-size:13px; color:#111; padding:32px; }'
+      + '.header { display:flex; justify-content:space-between; border-bottom:2px solid #1a56db; padding-bottom:12px; margin-bottom:24px; }'
+      + '.title { font-size:20px; font-weight:700; color:#1a56db; }'
+      + '.subtitle { font-size:11px; color:#666; margin-top:4px; }'
+      + '.date { font-size:11px; color:#666; text-align:right; }'
+      + '.step { display:flex; gap:12px; padding:14px 0; border-bottom:1px solid #e5e7eb; }'
+      + '.step:last-child { border-bottom:none; }'
+      + '.num { width:28px; height:28px; border-radius:50%; background:#1a56db; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; margin-top:2px; }'
+      + '.step-body { flex:1; }'
+      + '.step-title { font-weight:600; font-size:13px; margin-bottom:6px; }'
+      + '.photos { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }'
+      + '.photo { width:180px; height:135px; object-fit:cover; border:1px solid #ddd; border-radius:6px; }'
+      + '.no-photo { width:180px; height:50px; border:1px dashed #ccc; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#aaa; font-size:11px; }'
+      + '.obs { margin-top:24px; padding:10px 14px; background:#fef3c7; border-left:4px solid #d97706; font-size:11px; color:#92400e; }'
+      + '.footer { margin-top:32px; font-size:10px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:12px; }'
+      + '@media print { body { padding:20px; } }'
+      + '</style></head><body>'
+      + '<div class="header">'
+      + '<div><div class="title">Checklist — ' + catAtual.label + '</div>'
+      + '<div class="subtitle">Dipelnet — Padrão de verificação fotográfica</div></div>'
+      + '<div class="date">Data: ' + data + '<br/>Técnico: ___________________________</div>'
+      + '</div>'
+      + stepsHtml
+      + '<div class="obs">' + (contAtual.aviso_perigo || '') + '</div>'
+      + '<div class="footer">Gerado em ' + data + ' — Plataforma Interna Dipelnet</div>'
+      + '</body></html>';
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    win.onload = () => win.print();
+  };
+
+
   // ── CHECKLIST VIEW ──
   if (verChecklist) {
     const catAtual = CHECKLIST_CATS.find(c => c.id === catAtiva);
     const contAtual = checklistConts[catAtiva] || catAtual;
 
     const tabs = (
-      <div className="flex flex-wrap gap-2 mb-4">
-        {CHECKLIST_CATS.map(cat => {
-          const ativa = catAtiva === cat.id;
-          return (
-            <button key={cat.id} onClick={() => setCatAtiva(cat.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
-              style={{ background: ativa ? cat.cor : 'transparent', color: ativa ? '#fff' : cat.cor, borderColor: cat.cor }}>
-              {cat.label}
-            </button>
-          );
-        })}
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2 mb-2">
+          {CHECKLIST_CATS.map(cat => {
+            const ativa = catAtiva === cat.id;
+            return (
+              <button key={cat.id} onClick={() => setCatAtiva(cat.id)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border"
+                style={{ background: ativa ? cat.cor : 'transparent', color: ativa ? '#fff' : cat.cor, borderColor: cat.cor }}>
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex justify-end">
+          <button onClick={exportarPDF}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Exportar PDF
+          </button>
+        </div>
       </div>
     );
 
