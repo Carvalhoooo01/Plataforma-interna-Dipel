@@ -30,7 +30,7 @@ const IconWhatsApp = () => (
   </svg>
 );
 
-// ── Seção de contrato reutilizável ────────────────────
+// ── Seção de contrato ─────────────────────────────────
 function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
   const [uploading, setUploading] = useState(false);
   const [removendo, setRemovendo] = useState(false);
@@ -67,7 +67,8 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       </div>
       {contratoUrl ? (
         <div className="flex items-center gap-2">
-          <a href={`${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
+          {/* URL direta do Cloudinary */}
+          <a href={contratoUrl} target="_blank" rel="noreferrer"
             className="flex-1 text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex items-center gap-1">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Ver contrato
@@ -164,7 +165,6 @@ export default function Colaboradores() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex items-center gap-2 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 flex-1 min-w-[180px]">
           <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -223,7 +223,7 @@ export default function Colaboradores() {
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{c.nome}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.cargo}</div>
                         {c.contrato_url && (
-                          <a href={`${api.defaults.baseURL?.replace(/\/api$/, '')}${c.contrato_url}`} target="_blank" rel="noreferrer"
+                          <a href={c.contrato_url} target="_blank" rel="noreferrer"
                             className="text-[10px] text-blue-500 hover:underline flex items-center gap-0.5 mt-0.5">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Contrato
@@ -260,7 +260,6 @@ export default function Colaboradores() {
         })}
       </div>
 
-      {/* Modal */}
       {modal && (
         <div onClick={() => setModal(false)} className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div onClick={e => e.stopPropagation()} className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700">
@@ -293,8 +292,6 @@ export default function Colaboradores() {
                     className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-400"/>
                 </div>
               </div>
-
-              {/* Contrato — só mostra se já tem ID (editando) */}
               {editId && (
                 <ContratoSection
                   tipo="colaboradores"
@@ -304,7 +301,6 @@ export default function Colaboradores() {
                   apiInstance={api}
                 />
               )}
-
               {erro && <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg px-3 py-2 text-sm">{erro}</div>}
             </div>
             <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700">

@@ -3,8 +3,10 @@ const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const pool     = require('../config/database');
 const { autenticar, autorizar } = require('../middleware/auth');
-const fs   = require('fs');
-const path = require('path');
+const fs     = require('fs');
+const path   = require('path');
+const https2 = require('https');
+const crypto = require('crypto');
 
 const r = express.Router();
 
@@ -14,6 +16,50 @@ const temPermissao = (usuario, permissao) => {
   const perms = usuario.permissoes || {};
   return perms[permissao] === true;
 };
+
+// ── CLOUDINARY HELPERS ────────────────────────────────
+const CLOUD_NAME = 'dinfzopjh';
+const API_KEY    = '754394543815596';
+
+function cloudinaryUploadRaw(fileBuffer, fileName, folder) {
+  return new Promise((resolve, reject) => {
+    const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+    const timestamp  = Math.floor(Date.now() / 1000);
+    const sigStr     = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
+    const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
+    const boundary   = '----CloudinaryBoundary' + Date.now();
+    const parts      = [];
+    const addField   = (name, value) => parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
+    addField('api_key', API_KEY);
+    addField('timestamp', timestamp);
+    addField('signature', signature);
+    addField('folder', folder);
+    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${fileName}"\nContent-Type: application/octet-stream\n\n`));
+    parts.push(fileBuffer);
+    parts.push(Buffer.from(`\n--${boundary}--\n`));
+    const body    = Buffer.concat(parts);
+    const options = {
+      hostname: 'api.cloudinary.com',
+      path: `/v1_1/${CLOUD_NAME}/raw/upload`,
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
+    };
+    const req = https2.request(options, (res) => {
+      let data = '';
+      res.on('data', c => data += c);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.secure_url) resolve(json.secure_url);
+          else reject(new Error(json.error?.message || 'Upload falhou'));
+        } catch { reject(new Error('Resposta inválida')); }
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
+}
 
 // ── AUTH ─────────────────────────────────────────────
 r.post('/auth/login', async (req, res) => {
@@ -151,50 +197,28 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
-// ── CONTRATO TÉCNICO ──────────────────────────────────
+// ── CONTRATO TÉCNICO (Cloudinary) ─────────────────────
 r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
-    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
-    const fileName = `tecnico-${req.params.id}.${ext}`;
-    const filePath = path.join(contratosDir, fileName);
-    const chunks   = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', async () => {
-      fs.writeFileSync(filePath, Buffer.concat(chunks));
-      const url = `/api/tecnicos/${req.params.id}/contrato/arquivo`;
+  const chunks = [];
+  req.on('data', c => chunks.push(c));
+  req.on('end', async () => {
+    try {
+      const buffer   = Buffer.concat(chunks);
+      const fileName = req.headers['x-filename'] || `contrato-tecnico-${req.params.id}`;
+      const url      = await cloudinaryUploadRaw(buffer, fileName, 'dipelnet/contratos/tecnicos');
       await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.get('/tecnicos/:id/contrato/arquivo', async (req, res) => {
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
-    if (!file) return res.status(404).send('Contrato não encontrado');
-    const filePath = path.join(contratosDir, file);
-    const ext = file.split('.').pop().toLowerCase();
-    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
-    fs.createReadStream(filePath).pipe(res);
-  } catch(e) { res.status(500).json({ erro: e.message }); }
+    } catch(e) { res.status(500).json({ erro: e.message }); }
+  });
+  req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
 r.delete('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
-    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE tecnicos SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
@@ -266,12 +290,10 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
     const { step_index, img_index, url } = req.body;
     const slug  = req.params.id;
     const isNum = /^\d+$/.test(slug);
-
     const query = isNum
       ? 'SELECT id, conteudo FROM guias WHERE id=$1'
       : 'SELECT id, conteudo FROM guias WHERE slug=$1';
     let { rows } = await pool.query(query, [slug]);
-
     if (!rows.length) {
       if (isNum) return res.status(404).json({ erro: 'Guia não encontrado' });
       const ins = await pool.query(
@@ -281,12 +303,10 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
       );
       rows = ins.rows;
     }
-
     const { id, conteudo } = rows[0];
     if (!conteudo.steps) conteudo.steps = [];
     while (conteudo.steps.length <= step_index) conteudo.steps.push({ imgs: [] });
     if (!Array.isArray(conteudo.steps[step_index].imgs)) conteudo.steps[step_index].imgs = [];
-
     const imgs = conteudo.steps[step_index].imgs;
     if (url === null || url === undefined) {
       if (img_index !== undefined && img_index < imgs.length) imgs.splice(img_index, 1);
@@ -294,7 +314,6 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
       if (img_index !== undefined && img_index < imgs.length) imgs[img_index] = url;
       else imgs.push(url);
     }
-
     await pool.query('UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2', [JSON.stringify(conteudo), id]);
     res.json({ mensagem: 'Imagem atualizada com sucesso', url });
   } catch (err) {
@@ -394,50 +413,28 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
-// ── CONTRATO COLABORADOR ──────────────────────────────
+// ── CONTRATO COLABORADOR (Cloudinary) ─────────────────
 r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
-    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
-    const fileName = `colaborador-${req.params.id}.${ext}`;
-    const filePath = path.join(contratosDir, fileName);
-    const chunks   = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', async () => {
-      fs.writeFileSync(filePath, Buffer.concat(chunks));
-      const url = `/api/colaboradores/${req.params.id}/contrato/arquivo`;
+  const chunks = [];
+  req.on('data', c => chunks.push(c));
+  req.on('end', async () => {
+    try {
+      const buffer   = Buffer.concat(chunks);
+      const fileName = req.headers['x-filename'] || `contrato-colaborador-${req.params.id}`;
+      const url      = await cloudinaryUploadRaw(buffer, fileName, 'dipelnet/contratos/colaboradores');
       await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.get('/colaboradores/:id/contrato/arquivo', async (req, res) => {
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
-    if (!file) return res.status(404).send('Contrato não encontrado');
-    const filePath = path.join(contratosDir, file);
-    const ext = file.split('.').pop().toLowerCase();
-    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
-    fs.createReadStream(filePath).pipe(res);
-  } catch(e) { res.status(500).json({ erro: e.message }); }
+    } catch(e) { res.status(500).json({ erro: e.message }); }
+  });
+  req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
 r.delete('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
-    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE colaboradores SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
@@ -493,273 +490,160 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   const { nome } = req.query;
   if (!nome) return res.status(400).json({ erro:'Nome obrigatório' });
   if (geoServerCache[nome]) return res.json(geoServerCache[nome]);
-
   const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
-
   function centerOf(geometry) {
     try {
       const coords = geometry.type==='Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
       return { center_lat:coords.reduce((s,[,y])=>s+y,0)/coords.length, center_lng:coords.reduce((s,[x])=>s+x,0)/coords.length };
     } catch { return {}; }
   }
-
   const OSM_IDS = {
-    'Floresta':       { id:6727084,  type:'relation' },
-    'Periolo':        { id:6727073,  type:'relation' },
-    'Morumbi':        { id:6727086,  type:'relation' },
-    'Brasília':       { id:6727085,  type:'relation' },
-    'Interlagos':     { id:6727083,  type:'relation' },
-    'Cascavel Velho': { id:6727076,  type:'relation' },
-    'Cataratas':      { id:6727074,  type:'relation' },
-    'Região do Lago': { id:6727067,  type:'relation' },
-    'Região do lago': { id:6727067,  type:'relation' },
-    'Pacaembu':       { id:6727075,  type:'relation' },
-    'Pacaembú':       { id:6727075,  type:'relation' },
-    'Santos Dumont':  { id:6727060,  type:'relation' },
-    'Cancelli':              { id:6727080,   type:'relation' },
-    'Esmeralda':             { id:6727068,   type:'relation' },
-    'Country':               { id:6727057,   type:'relation' },
-    'São Cristóvão':         { id:6727072,   type:'relation' },
-    'Sao Cristovao':         { id:6727072,   type:'relation' },
-    'Parque Verde':          { id:6727078,   type:'relation' },
-    'Santa Felicidade':      { id:6727064,   type:'relation' },
-    'Maria Luiza':           { id:6727056,   type:'relation' },
-    'Neva':                  { id:6727063,   type:'relation' },
-    'Coqueiral':             { id:6727058,   type:'relation' },
-    'Canadá':                { id:6727081,   type:'relation' },
-    'Canada':                { id:6727081,   type:'relation' },
-    'Recanto Tropical':      { id:6727079,   type:'relation' },
-    'Tropical':              { id:6727079,   type:'relation' },
-    'Alto Alegre':           { id:454903448, type:'way' },
-    'Parque São Paulo':      { id:454903443, type:'way' },
-    'Parque Sao Paulo':      { id:454903443, type:'way' },
-    'Santa Cruz':            { id:454903447, type:'way' },
-    'Universitário':         { id:454903444, type:'way' },
-    'Universitario':         { id:454903444, type:'way' },
-    'Pioneiros Catarinenses':{ id:454903437, type:'way' },
-    'Guarujá':               { id:454903439, type:'way' },
-    'Guaruja':               { id:454903439, type:'way' },
-    'Brasmadeira':    { type:'bbox', minLat:-24.9353, maxLat:-24.9093, minLng:-53.4603, maxLng:-53.4343 },
-    'Santo Onofre':   { type:'bbox', minLat:-24.9858, maxLat:-24.9558, minLng:-53.5123, maxLng:-53.4823 },
-    'Centro':         { type:'bbox', minLat:-24.9800, maxLat:-24.9300, minLng:-53.4893, maxLng:-53.4393 },
-    'Vila Tolentino': { type:'bbox', minLat:-24.9833, maxLat:-24.9633, minLng:-53.4883, maxLng:-53.4483 },
+    'Floresta':{ id:6727084,type:'relation' },'Periolo':{ id:6727073,type:'relation' },'Morumbi':{ id:6727086,type:'relation' },
+    'Brasília':{ id:6727085,type:'relation' },'Interlagos':{ id:6727083,type:'relation' },'Cascavel Velho':{ id:6727076,type:'relation' },
+    'Cataratas':{ id:6727074,type:'relation' },'Região do Lago':{ id:6727067,type:'relation' },'Região do lago':{ id:6727067,type:'relation' },
+    'Pacaembu':{ id:6727075,type:'relation' },'Pacaembú':{ id:6727075,type:'relation' },'Santos Dumont':{ id:6727060,type:'relation' },
+    'Cancelli':{ id:6727080,type:'relation' },'Esmeralda':{ id:6727068,type:'relation' },'Country':{ id:6727057,type:'relation' },
+    'São Cristóvão':{ id:6727072,type:'relation' },'Sao Cristovao':{ id:6727072,type:'relation' },'Parque Verde':{ id:6727078,type:'relation' },
+    'Santa Felicidade':{ id:6727064,type:'relation' },'Maria Luiza':{ id:6727056,type:'relation' },'Neva':{ id:6727063,type:'relation' },
+    'Coqueiral':{ id:6727058,type:'relation' },'Canadá':{ id:6727081,type:'relation' },'Canada':{ id:6727081,type:'relation' },
+    'Recanto Tropical':{ id:6727079,type:'relation' },'Tropical':{ id:6727079,type:'relation' },
+    'Alto Alegre':{ id:454903448,type:'way' },'Parque São Paulo':{ id:454903443,type:'way' },'Parque Sao Paulo':{ id:454903443,type:'way' },
+    'Santa Cruz':{ id:454903447,type:'way' },'Universitário':{ id:454903444,type:'way' },'Universitario':{ id:454903444,type:'way' },
+    'Pioneiros Catarinenses':{ id:454903437,type:'way' },'Guarujá':{ id:454903439,type:'way' },'Guaruja':{ id:454903439,type:'way' },
+    'Brasmadeira':{ type:'bbox',minLat:-24.9353,maxLat:-24.9093,minLng:-53.4603,maxLng:-53.4343 },
+    'Santo Onofre':{ type:'bbox',minLat:-24.9858,maxLat:-24.9558,minLng:-53.5123,maxLng:-53.4823 },
+    'Centro':{ type:'bbox',minLat:-24.9800,maxLat:-24.9300,minLng:-53.4893,maxLng:-53.4393 },
+    'Vila Tolentino':{ type:'bbox',minLat:-24.9833,maxLat:-24.9633,minLng:-53.4883,maxLng:-53.4483 },
   };
-
-  const n  = nome.trim().split(' ').map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join(' ');
+  const n = nome.trim().split(' ').map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join(' ');
   const nA = n.normalize('NFD').replace(/[̀-ͯ]/g,'');
-  const mapAcentos = {
-    'Corbelia':'Corbélia','Cafelandia':'Cafelândia','Guaraniacu':'Guaraniaçu',
-    'Ceu Azul':'Céu Azul','Santo Inacio':'Santo Inácio','Sao Domingos':'São Domingos',
-    'Regiao Do Lago':'Região do Lago','Parque Sao Paulo':'Parque São Paulo',
-    'Sao Cristovao':'São Cristóvão','Bairro Sao Cristovao':'Bairro São Cristóvão',
-  };
+  const mapAcentos = { 'Corbelia':'Corbélia','Cafelandia':'Cafelândia','Guaraniacu':'Guaraniaçu','Ceu Azul':'Céu Azul','Santo Inacio':'Santo Inácio','Sao Domingos':'São Domingos','Regiao Do Lago':'Região do Lago','Parque Sao Paulo':'Parque São Paulo','Sao Cristovao':'São Cristóvão','Bairro Sao Cristovao':'Bairro São Cristóvão' };
   const nAcento = mapAcentos[nA] || n;
-
   const osmEntry = OSM_IDS[nAcento] || OSM_IDS[n] || OSM_IDS[nome];
   if (osmEntry) {
     if (osmEntry.type === 'bbox') {
       const { minLat, maxLat, minLng, maxLng } = osmEntry;
-      const geom = { type:'Polygon', coordinates:[[
-        [minLng, minLat],[maxLng, minLat],[maxLng, maxLat],[minLng, maxLat],[minLng, minLat]
-      ]]};
+      const geom = { type:'Polygon', coordinates:[[[ minLng,minLat],[maxLng,minLat],[maxLng,maxLat],[minLng,maxLat],[minLng,minLat]]] };
       const c = { center_lat:(minLat+maxLat)/2, center_lng:(minLng+maxLng)/2 };
-      const result = { geometry:geom, ...c, display_name:nAcento, source:'bbox' };
-      geoServerCache[nome] = result;
-      return res.json(result);
-    }
-    if (osmEntry.type === 'node') {
-      const result = { geometry:null, center_lat:osmEntry.lat, center_lng:osmEntry.lng, display_name:nAcento, source:'osm-node' };
-      geoServerCache[nome] = result;
-      return res.json(result);
+      const result = { geometry:geom,...c,display_name:nAcento,source:'bbox' };
+      geoServerCache[nome] = result; return res.json(result);
     }
     try {
-      const q   = osmEntry.type === 'way'
-        ? `[out:json][timeout:10];way(${osmEntry.id});out geom;`
-        : `[out:json][timeout:10];relation(${osmEntry.id});out geom;`;
+      const q = osmEntry.type==='way' ? `[out:json][timeout:10];way(${osmEntry.id});out geom;` : `[out:json][timeout:10];relation(${osmEntry.id});out geom;`;
       const url = 'https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q);
-      const r2  = await httpsGet(url, H, 10000);
+      const r2 = await httpsGet(url, H, 10000);
       if (r2.status===200 && r2.data?.elements?.length) {
         const el = r2.data.elements[0];
         let geom = null;
-        if (osmEntry.type === 'way' && el.geometry) {
-          geom = { type:'Polygon', coordinates:[el.geometry.map(p=>[p.lon,p.lat])] };
-        } else {
-          geom = overpassToGeojson(r2.data.elements);
-        }
-        if (geom) {
-          const c = centerOf(geom);
-          const result = { geometry:geom, ...c, display_name:nAcento, source:'osm-id' };
-          geoServerCache[nome] = result;
-          return res.json(result);
-        }
+        if (osmEntry.type==='way' && el.geometry) geom = { type:'Polygon', coordinates:[el.geometry.map(p=>[p.lon,p.lat])] };
+        else geom = overpassToGeojson(r2.data.elements);
+        if (geom) { const c = centerOf(geom); const result = { geometry:geom,...c,display_name:nAcento,source:'osm-id' }; geoServerCache[nome]=result; return res.json(result); }
       }
     } catch(e) { console.log(`[GEO OSM ID erro] ${e.message}`); }
   }
-
   const CASCAVEL = { lat:-24.9558, lng:-53.4548 };
   async function nominatim(query, filtro) {
     try {
       await sleep(400);
       const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&polygon_geojson=1&limit=5&addressdetails=1`;
-      const r2  = await httpsGet(url, H, 8000);
-      if (r2.status !== 200 || !r2.data?.length) return null;
+      const r2 = await httpsGet(url, H, 8000);
+      if (r2.status!==200 || !r2.data?.length) return null;
       for (const item of r2.data) {
-        const lat = parseFloat(item.lat), lng = parseFloat(item.lon);
-        if (filtro && !filtro(item, lat, lng)) continue;
-        const geom = item.geojson;
-        if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) {
-          const c = centerOf(geom);
-          return { geometry:geom, ...c, display_name:item.display_name };
-        }
-        return { geometry:null, center_lat:lat, center_lng:lng, display_name:item.display_name };
+        const lat=parseFloat(item.lat), lng=parseFloat(item.lon);
+        if (filtro && !filtro(item,lat,lng)) continue;
+        const geom=item.geojson;
+        if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) { const c=centerOf(geom); return { geometry:geom,...c,display_name:item.display_name }; }
+        return { geometry:null,center_lat:lat,center_lng:lng,display_name:item.display_name };
       }
     } catch(e) { console.log(`[GEO Nominatim erro] ${e.message}`); }
     return null;
   }
-
-  const filtroBairro = (item, lat, lng) => {
-    const dist = Math.sqrt(Math.pow(lat-CASCAVEL.lat,2)+Math.pow(lng-CASCAVEL.lng,2))*111;
-    const ehCidade = ['city','town','municipality'].includes(item.addresstype||item.type)
-      && !(item.display_name||'').toLowerCase().includes('cascavel');
-    return dist <= 30 && !ehCidade;
-  };
-  const filtroParana = (item, lat, lng) => lat>-27&&lat<-22&&lng>-55&&lng<-48;
-
+  const filtroBairro = (item,lat,lng) => { const dist=Math.sqrt(Math.pow(lat-CASCAVEL.lat,2)+Math.pow(lng-CASCAVEL.lng,2))*111; const ehCidade=['city','town','municipality'].includes(item.addresstype||item.type)&&!(item.display_name||'').toLowerCase().includes('cascavel'); return dist<=30&&!ehCidade; };
+  const filtroParana = (item,lat,lng) => lat>-27&&lat<-22&&lng>-55&&lng<-48;
   const tentativas = [
     () => nominatim(`${nAcento}, Cascavel, Paraná`, filtroBairro),
     () => nominatim(`${nA}, Cascavel, Paraná`, filtroBairro),
     () => nominatim(`${nAcento}, Paraná, Brasil`, filtroParana),
     () => nominatim(`${nA}, Paraná, Brasil`, filtroParana),
   ];
-
-  for (const t of tentativas) {
-    const result = await t();
-    if (result) { geoServerCache[nome] = result; return res.json(result); }
-  }
-
+  for (const t of tentativas) { const result=await t(); if (result) { geoServerCache[nome]=result; return res.json(result); } }
   res.status(404).json({ erro:'Região não encontrada' });
 });
 
-// ── AUTOCOMPLETE DE REGIÕES ──────────────────────────
-const BAIRROS_CASCAVEL = [
-  'Centro','Cancelli','Country','São Cristóvão','Pacaembu',
-  'Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho',
-  'Jardim União','Universitário','XIV de Novembro','14 de Novembro',
-  'Esmeralda','Parque Verde','Tropical','Recanto Tropical','Maria Luiza',
-  'Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz',
-  'Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade',
-  'Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira',
-  'Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda',
-  'Santo Inácio','Bairro São Cristóvão',
-];
-const CIDADES_PR = [
-  'Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora',
-  'Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul',
-  'Formosa do Oeste','Ibema','Lindoeste','Santa Lúcia','Três Barras do Paraná',
-];
+const BAIRROS_CASCAVEL = ['Centro','Cancelli','Country','São Cristóvão','Pacaembu','Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho','Jardim União','Universitário','XIV de Novembro','14 de Novembro','Esmeralda','Parque Verde','Tropical','Recanto Tropical','Maria Luiza','Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz','Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade','Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira','Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda','Santo Inácio','Bairro São Cristóvão'];
+const CIDADES_PR = ['Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora','Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul','Formosa do Oeste','Ibema','Lindoeste','Santa Lúcia','Três Barras do Paraná'];
 
 r.get('/geo/autocomplete', autenticar, async (req, res) => {
   const { q } = req.query;
   if (!q || q.length < 2) return res.json([]);
-  const n   = q.trim().toLowerCase();
-  const H   = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
+  const n = q.trim().toLowerCase();
+  const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
   const semAcentos = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const nSA = semAcentos(n);
-  const bairrosMatch = BAIRROS_CASCAVEL.filter(b => semAcentos(b).includes(nSA)).map(b => ({ nome:b, display:`${b}, Cascavel - PR`, tipo:'Bairro · Cascavel' }));
-  const cidadesMatch = CIDADES_PR.filter(c => semAcentos(c).includes(nSA)).map(c => ({ nome:c, display:`${c}, Paraná`, tipo:'Cidade · PR' }));
-  const local = [...bairrosMatch, ...cidadesMatch].slice(0, 8);
+  const bairrosMatch = BAIRROS_CASCAVEL.filter(b => semAcentos(b).includes(nSA)).map(b => ({ nome:b,display:`${b}, Cascavel - PR`,tipo:'Bairro · Cascavel' }));
+  const cidadesMatch = CIDADES_PR.filter(c => semAcentos(c).includes(nSA)).map(c => ({ nome:c,display:`${c}, Paraná`,tipo:'Cidade · PR' }));
+  const local = [...bairrosMatch,...cidadesMatch].slice(0,8);
   if (local.length > 0) return res.json(local);
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Paraná')}&format=json&limit=8&addressdetails=1&countrycodes=br`;
-    const r2  = await httpsGet(url, H, 5000);
-    if (r2.status !== 200 || !r2.data?.length) return res.json([]);
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+', Paraná')}&format=json&limit=8&addressdetails=1&countrycodes=br`;
+    const r2 = await httpsGet(url, H, 5000);
+    if (r2.status!==200||!r2.data?.length) return res.json([]);
     const resultados = [];
     for (const item of r2.data) {
-      const lat = parseFloat(item.lat), lng = parseFloat(item.lon);
-      const noParana = lat > -27 && lat < -22 && lng > -55 && lng < -48;
-      if (!noParana) continue;
-      const addresstype  = item.addresstype || item.type || '';
-      const distCascavel = Math.sqrt(Math.pow(lat-(-24.9558),2)+Math.pow(lng-(-53.4548),2))*111;
-      const nomePrincipal = item.name || (item.display_name||'').split(',')[0].trim();
-      const display = (item.display_name||'').split(',').slice(0,2).join(',').trim();
-      let tipo = distCascavel < 20 ? 'Bairro · Cascavel' : 'Cidade · PR';
-      if (['city','town','municipality'].includes(addresstype)) tipo = 'Cidade · PR';
-      if (!resultados.find(r => r.nome === nomePrincipal))
-        resultados.push({ nome:nomePrincipal, display, tipo, distCascavel:Math.round(distCascavel) });
+      const lat=parseFloat(item.lat),lng=parseFloat(item.lon);
+      if (!(lat>-27&&lat<-22&&lng>-55&&lng<-48)) continue;
+      const addresstype=item.addresstype||item.type||'';
+      const distCascavel=Math.sqrt(Math.pow(lat-(-24.9558),2)+Math.pow(lng-(-53.4548),2))*111;
+      const nomePrincipal=item.name||(item.display_name||'').split(',')[0].trim();
+      const display=(item.display_name||'').split(',').slice(0,2).join(',').trim();
+      let tipo=distCascavel<20?'Bairro · Cascavel':'Cidade · PR';
+      if (['city','town','municipality'].includes(addresstype)) tipo='Cidade · PR';
+      if (!resultados.find(r=>r.nome===nomePrincipal)) resultados.push({ nome:nomePrincipal,display,tipo,distCascavel:Math.round(distCascavel) });
     }
-    resultados.sort((a,b) => (a.tipo.includes('Cascavel')?0:1) - (b.tipo.includes('Cascavel')?0:1) || a.distCascavel-b.distCascavel);
+    resultados.sort((a,b)=>(a.tipo.includes('Cascavel')?0:1)-(b.tipo.includes('Cascavel')?0:1)||a.distCascavel-b.distCascavel);
     res.json(resultados.slice(0,6));
-  } catch (e) { res.json([]); }
+  } catch { res.json([]); }
 });
 
 // ── PDF RECICLAGEM ────────────────────────────────────
-const https2 = require('https');
-const crypto = require('crypto');
 const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 
 function cloudinaryUpload(fileBuffer, fileName) {
   return new Promise((resolve, reject) => {
-    const CLOUD_NAME = 'dinfzopjh';
-    const API_KEY    = '754394543815596';
     const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
-    const timestamp = Math.floor(Date.now() / 1000);
-    const folder    = 'dipelnet/manuais';
-    const sigStr    = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
-    const signature = crypto.createHash('sha1').update(sigStr).digest('hex');
-    const boundary = '----CloudinaryBoundary' + Date.now();
+    const timestamp  = Math.floor(Date.now() / 1000);
+    const folder     = 'dipelnet/manuais';
+    const sigStr     = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
+    const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
+    const boundary   = '----CloudinaryBoundary' + Date.now();
     const parts = [];
-    const addField = (name, value) => {
-      parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
-    };
-    addField('api_key', API_KEY);
-    addField('timestamp', timestamp);
-    addField('signature', signature);
-    addField('folder', folder);
-    addField('resource_type', 'raw');
+    const addField = (name, value) => parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
+    addField('api_key', API_KEY); addField('timestamp', timestamp); addField('signature', signature); addField('folder', folder); addField('resource_type', 'raw');
     parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${fileName}"\nContent-Type: application/pdf\n\n`));
-    parts.push(fileBuffer);
-    parts.push(Buffer.from(`\n--${boundary}--\n`));
+    parts.push(fileBuffer); parts.push(Buffer.from(`\n--${boundary}--\n`));
     const body = Buffer.concat(parts);
-    const options = {
-      hostname: 'api.cloudinary.com',
-      path: `/v1_1/${CLOUD_NAME}/raw/upload`,
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
-    };
+    const options = { hostname:'api.cloudinary.com', path:`/v1_1/${CLOUD_NAME}/raw/upload`, method:'POST', headers:{ 'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':body.length } };
     const req = https2.request(options, (res) => {
       let data = '';
       res.on('data', c => data += c);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.secure_url) resolve(json.secure_url);
-          else reject(new Error(json.error?.message || 'Upload falhou'));
-        } catch { reject(new Error('Resposta inválida')); }
-      });
+      res.on('end', () => { try { const json=JSON.parse(data); if (json.secure_url) resolve(json.secure_url); else reject(new Error(json.error?.message||'Upload falhou')); } catch { reject(new Error('Resposta inválida')); } });
     });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
+    req.on('error', reject); req.write(body); req.end();
   });
 }
 
 r.get('/config/reciclagem-pdf', autenticar, async (req, res) => {
-  try {
-    const { rows } = await pool.query("SELECT valor FROM configuracoes WHERE chave='reciclagem_pdf_url' LIMIT 1");
-    res.json({ url: rows[0]?.valor || null });
-  } catch { res.json({ url: null }); }
+  try { const { rows } = await pool.query("SELECT valor FROM configuracoes WHERE chave='reciclagem_pdf_url' LIMIT 1"); res.json({ url: rows[0]?.valor||null }); }
+  catch { res.json({ url: null }); }
 });
 
 r.post('/config/reciclagem-pdf', autenticar, autorizar('admin','gestor'), async (req, res) => {
-  try {
-    const { url } = req.body;
-    await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
-    res.json({ ok: true });
-  } catch { res.status(500).json({ erro: 'Erro ao salvar URL' }); }
+  try { const { url } = req.body; await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]); res.json({ ok: true }); }
+  catch { res.status(500).json({ erro: 'Erro ao salvar URL' }); }
 });
 
 r.get('/config/reciclagem-pdf-proxy', (req, res) => {
-  if (!fs.existsSync(PDF_PATH)) return res.status(404).send('PDF não encontrado. Faça o upload pelo sistema.');
+  if (!fs.existsSync(PDF_PATH)) return res.status(404).send('PDF não encontrado.');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'inline; filename="Reciclagem.pdf"');
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -767,10 +651,8 @@ r.get('/config/reciclagem-pdf-proxy', (req, res) => {
 });
 
 r.delete('/config/reciclagem-remover', autenticar, autorizar('admin','gestor'), (req, res) => {
-  try {
-    if (fs.existsSync(PDF_PATH)) fs.unlinkSync(PDF_PATH);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
+  try { if (fs.existsSync(PDF_PATH)) fs.unlinkSync(PDF_PATH); res.json({ ok: true }); }
+  catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
 r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'), (req, res) => {
@@ -778,11 +660,7 @@ r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'
   if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
   const chunks = [];
   req.on('data', c => chunks.push(c));
-  req.on('end', () => {
-    const buffer = Buffer.concat(chunks);
-    fs.writeFileSync(PDF_PATH, buffer);
-    res.json({ ok: true, size: buffer.length });
-  });
+  req.on('end', () => { const buffer=Buffer.concat(chunks); fs.writeFileSync(PDF_PATH, buffer); res.json({ ok:true, size:buffer.length }); });
   req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
@@ -791,13 +669,8 @@ r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), asy
     const chunks = [];
     req.on('data', c => chunks.push(c));
     req.on('end', async () => {
-      try {
-        const buffer   = Buffer.concat(chunks);
-        const fileName = req.headers['x-filename'] || 'manual.pdf';
-        const url      = await cloudinaryUpload(buffer, fileName);
-        await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
-        res.json({ url });
-      } catch(e) { res.status(500).json({ erro: e.message }); }
+      try { const buffer=Buffer.concat(chunks); const fileName=req.headers['x-filename']||'manual.pdf'; const url=await cloudinaryUpload(buffer,fileName); await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`,[url]); res.json({ url }); }
+      catch(e) { res.status(500).json({ erro: e.message }); }
     });
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
