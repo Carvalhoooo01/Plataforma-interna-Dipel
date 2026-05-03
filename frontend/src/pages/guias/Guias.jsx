@@ -368,13 +368,54 @@ export default function Guias() {
 
 
 
+
+  const exportarPDF = () => {
+    const catAtual  = CHECKLIST_CATS.find(c => c.id === catAtiva);
+    const contAtual = checklistConts[catAtiva] || catAtual;
+    const data      = new Date().toLocaleDateString('pt-BR');
+
+    let stepsHtml = '';
+    contAtual.steps.forEach((s, i) => {
+      const fotos = (s.imgs || []).filter(u => u);
+      const fotosHtml = fotos.length > 0
+        ? fotos.map(url => '<img src="' + url + '" style="width:170px;height:128px;object-fit:cover;border:1px solid #ddd;border-radius:6px;"/>').join('')
+        : '<div style="width:170px;height:48px;border:1px dashed #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;">Sem foto</div>';
+      stepsHtml += '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #e5e7eb;">'
+        + '<div style="width:26px;height:26px;border-radius:50%;background:#1a56db;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + (i + 1) + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-weight:600;font-size:12px;margin-bottom:6px;">' + s.titulo + '</div>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + fotosHtml + '</div>'
+        + '</div></div>';
+    });
+
+    const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
+      + '<title>Checklist — ' + catAtual.label + '</title>'
+      + '<style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:12px; color:#111; padding:24px; } @media print { body { padding:16px; } }</style>'
+      + '</head><body>'
+      + '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a56db;padding-bottom:10px;margin-bottom:20px;">'
+      + '<div><div style="font-size:18px;font-weight:700;color:#1a56db;">Checklist — ' + catAtual.label + '</div>'
+      + '<div style="font-size:10px;color:#666;margin-top:3px;">Dipelnet — Padrão de verificação fotográfica</div></div>'
+      + '<div style="font-size:10px;color:#666;text-align:right;">Data: ' + data + '<br/>Técnico: ___________________________</div>'
+      + '</div>'
+      + stepsHtml
+      + '<div style="margin-top:20px;padding:10px 14px;background:#fef3c7;border-left:4px solid #d97706;font-size:10px;color:#92400e;">' + (contAtual.aviso_perigo || '') + '</div>'
+      + '<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;">Gerado em ' + data + ' — Plataforma Interna Dipelnet</div>'
+      + '</body></html>';
+
+    const win = window.open('', '_blank');
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 800);
+  };
+
   // ── CHECKLIST VIEW ──
   if (verChecklist) {
     const catAtual = CHECKLIST_CATS.find(c => c.id === catAtiva);
     const contAtual = checklistConts[catAtiva] || catAtual;
 
     const tabs = (
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="mb-4">
+        <div className="flex flex-wrap gap-2 mb-2">
           {CHECKLIST_CATS.map(cat => {
             const ativa = catAtiva === cat.id;
             return (
@@ -386,6 +427,14 @@ export default function Guias() {
             );
           })}
         </div>
+        <div className="flex justify-end">
+          <button onClick={exportarPDF}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-200 dark:border-gray-700">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            Exportar PDF
+          </button>
+        </div>
+      </div>
     );
 
     return (
