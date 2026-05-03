@@ -68,7 +68,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       {contratoUrl ? (
         <div className="flex items-center gap-2">
           {/* URL direta do Cloudinary */}
-          <a href={contratoUrl} target="_blank" rel="noreferrer"
+          <a href={contratoUrl?.startsWith('http') ? contratoUrl : `${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
             className="flex-1 text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex items-center gap-1">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Ver contrato
@@ -223,7 +223,7 @@ export default function Colaboradores() {
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{c.nome}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.cargo}</div>
                         {c.contrato_url && (
-                          <a href={c.contrato_url} target="_blank" rel="noreferrer"
+                          <a href={c.contrato_url?.startsWith('http') ? c.contrato_url : `${api.defaults.baseURL?.replace(/\/api$/, '')}${c.contrato_url}`} target="_blank" rel="noreferrer"
                             className="text-[10px] text-blue-500 hover:underline flex items-center gap-0.5 mt-0.5">
                             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Contrato

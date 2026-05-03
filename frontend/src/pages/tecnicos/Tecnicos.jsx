@@ -168,7 +168,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           {/* URL direta do Cloudinary — sem manipulação de baseURL */}
-          <a href={contratoUrl} target="_blank" rel="noreferrer"
+          <a href={contratoUrl?.startsWith('http') ? contratoUrl : `${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             📎 Ver contrato
           </a>
@@ -288,7 +288,7 @@ export default function Tecnicos() {
                   <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:500, background:sbg, color:sco, marginTop:5 }}>{t.status}</span>
                   {t.contrato_url && (
                     <a
-                      href={t.contrato_url}
+                      href={t.contrato_url?.startsWith('http') ? t.contrato_url : `${api.defaults.baseURL?.replace(/\/api$/, '')}${t.contrato_url}`}
                       target="_blank" rel="noreferrer"
                       style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'none' }}
                       onClick={e => e.stopPropagation()}
