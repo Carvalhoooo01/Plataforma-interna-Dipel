@@ -104,6 +104,22 @@ const migrate = async () => {
     await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{}';`);
     await client.query(`CREATE TABLE IF NOT EXISTS configuracoes (chave VARCHAR(100) PRIMARY KEY, valor TEXT);`);
 
+    // ── LOGS DE ACESSO ───────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS logs_acesso (
+        id         SERIAL PRIMARY KEY,
+        usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+        email      VARCHAR(150),
+        acao       VARCHAR(50) NOT NULL,
+        ip         VARCHAR(45),
+        user_agent TEXT,
+        sucesso    BOOLEAN DEFAULT TRUE,
+        criado_em  TIMESTAMP DEFAULT NOW()
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_logs_usuario ON logs_acesso(usuario_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_logs_criado ON logs_acesso(criado_em DESC);`);
+
     // ── NOVAS COLUNAS: telefone e contrato ──────────
     await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);`);
     await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS contrato_url TEXT;`);

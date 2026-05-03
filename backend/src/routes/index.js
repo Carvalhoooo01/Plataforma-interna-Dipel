@@ -23,6 +23,8 @@ const API_KEY    = '754394543815596';
 
 // ── AUTH ─────────────────────────────────────────────
 r.post('/auth/login', async (req, res) => {
+  const ip        = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || '';
   try {
     const { email, senha } = req.body;
     if (!email || !senha) return res.status(400).json({ erro: 'E-mail e senha obrigatórios' });
@@ -30,10 +32,17 @@ r.post('/auth/login', async (req, res) => {
       `SELECT u.*, s.nome as setor_nome FROM usuarios u LEFT JOIN setores s ON s.id=u.setor_id WHERE u.email=$1 AND u.ativo=TRUE`,
       [email.toLowerCase().trim()]
     );
-    if (!rows.length) return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+    if (!rows.length) {
+      await pool.query('INSERT INTO logs_acesso (email, acao, ip, user_agent, sucesso) VALUES ($1,$2,$3,$4,FALSE)', [email, 'login', ip, userAgent]).catch(()=>{});
+      return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+    }
     const ok = await bcrypt.compare(senha, rows[0].senha_hash);
-    if (!ok) return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+    if (!ok) {
+      await pool.query('INSERT INTO logs_acesso (usuario_id, email, acao, ip, user_agent, sucesso) VALUES ($1,$2,$3,$4,$5,FALSE)', [rows[0].id, email, 'login', ip, userAgent]).catch(()=>{});
+      return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
+    }
     await pool.query('UPDATE usuarios SET ultimo_login=NOW() WHERE id=$1', [rows[0].id]);
+    await pool.query('INSERT INTO logs_acesso (usuario_id, email, acao, ip, user_agent, sucesso) VALUES ($1,$2,$3,$4,$5,TRUE)', [rows[0].id, email, 'login', ip, userAgent]).catch(()=>{});
     const token = jwt.sign({ id: rows[0].id, role: rows[0].role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '8h' });
     delete rows[0].senha_hash;
     res.json({ token, usuario: rows[0] });
@@ -41,6 +50,21 @@ r.post('/auth/login', async (req, res) => {
 });
 
 r.get('/auth/me', autenticar, (req, res) => res.json({ usuario: req.usuario }));
+
+// ── LOGS DE ACESSO ────────────────────────────────────
+r.get('/logs', autenticar, autorizar('admin','gestor'), async (req, res) => {
+  try {
+    const limit  = Math.min(parseInt(req.query.limit) || 50, 200);
+    const offset = parseInt(req.query.offset) || 0;
+    const { rows } = await pool.query(
+      `SELECT l.id, l.email, l.acao, l.ip, l.sucesso, l.criado_em, u.nome as usuario_nome, u.role
+       FROM logs_acesso l LEFT JOIN usuarios u ON u.id=l.usuario_id
+       ORDER BY l.criado_em DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    res.json(rows);
+  } catch { res.status(500).json({ erro: 'Erro ao listar logs' }); }
+});
 
 r.post('/auth/trocar-senha', autenticar, async (req, res) => {
   try {
