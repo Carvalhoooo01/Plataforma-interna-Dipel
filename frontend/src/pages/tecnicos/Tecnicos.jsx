@@ -169,7 +169,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance, c })
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <a href={`${apiInstance.defaults.baseURL}${contratoUrl.replace('/api','')}`} target="_blank" rel="noreferrer"
+          <a href={`${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             📎 Ver contrato
           </a>
