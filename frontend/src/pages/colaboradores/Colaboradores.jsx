@@ -31,7 +31,7 @@ const IconWhatsApp = () => (
 );
 
 // ── Seção de contrato reutilizável ────────────────────
-function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
+function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
   const [uploading, setUploading] = useState(false);
   const [removendo, setRemovendo] = useState(false);
   const inputRef = useRef(null);
@@ -40,19 +40,13 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
     setUploading(true);
     try {
       const buffer = await file.arrayBuffer();
-      const res = await fetch(`/api/${tipo}/${id}/contrato`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'x-filename': file.name,
-          'Content-Type': 'application/octet-stream',
-        },
-        body: buffer,
+      const { data } = await apiInstance.post(`/${tipo}/${id}/contrato`, buffer, {
+        headers: { 'x-filename': file.name, 'Content-Type': 'application/octet-stream' },
+        transformRequest: [(d) => d],
       });
-      const data = await res.json();
       if (data.ok) onAtualizar(data.url);
       else alert('Erro ao enviar contrato');
-    } catch { alert('Erro ao enviar contrato'); }
+    } catch (e) { alert('Erro ao enviar contrato: ' + (e.response?.data?.erro || e.message)); }
     finally { setUploading(false); }
   };
 
@@ -60,10 +54,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
     if (!confirm('Remover contrato?')) return;
     setRemovendo(true);
     try {
-      await fetch(`/api/${tipo}/${id}/contrato`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
+      await apiInstance.delete(`/${tipo}/${id}/contrato`);
       onAtualizar(null);
     } catch { alert('Erro ao remover'); }
     finally { setRemovendo(false); }
@@ -76,7 +67,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
       </div>
       {contratoUrl ? (
         <div className="flex items-center gap-2">
-          <a href={contratoUrl} target="_blank" rel="noreferrer"
+          <a href={`${apiInstance.defaults.baseURL}${contratoUrl.replace('/api','')}`} target="_blank" rel="noreferrer"
             className="flex-1 text-xs text-blue-600 dark:text-blue-400 hover:underline truncate flex items-center gap-1">
             <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             Ver contrato
@@ -310,6 +301,7 @@ export default function Colaboradores() {
                   id={editId}
                   contratoUrl={colaboradores.find(c => c.id === editId)?.contrato_url || null}
                   onAtualizar={(url) => atualizarContrato(editId, url)}
+                  apiInstance={api}
                 />
               )}
 

@@ -131,8 +131,9 @@ function RegiaoInput({ valor, onChange, dark }) {
 }
 
 
+
 // ── Seção de contrato ─────────────────────────────────
-function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
+function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance, c }) {
   const [uploading, setUploading] = useState(false);
   const [removendo, setRemovendo] = useState(false);
   const inputRef = useRef(null);
@@ -141,19 +142,13 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
     setUploading(true);
     try {
       const buffer = await file.arrayBuffer();
-      const res = await fetch(`/api/${tipo}/${id}/contrato`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'x-filename': file.name,
-          'Content-Type': 'application/octet-stream',
-        },
-        body: buffer,
+      const { data } = await apiInstance.post(`/${tipo}/${id}/contrato`, buffer, {
+        headers: { 'x-filename': file.name, 'Content-Type': 'application/octet-stream' },
+        transformRequest: [(d) => d],
       });
-      const data = await res.json();
       if (data.ok) onAtualizar(data.url);
       else alert('Erro ao enviar contrato');
-    } catch { alert('Erro ao enviar contrato'); }
+    } catch (e) { alert('Erro ao enviar contrato: ' + (e.response?.data?.erro || e.message)); }
     finally { setUploading(false); }
   };
 
@@ -161,10 +156,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
     if (!confirm('Remover contrato?')) return;
     setRemovendo(true);
     try {
-      await fetch(`/api/${tipo}/${id}/contrato`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-      });
+      await apiInstance.delete(`/${tipo}/${id}/contrato`);
       onAtualizar(null);
     } catch { alert('Erro ao remover'); }
     finally { setRemovendo(false); }
@@ -177,7 +169,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <a href={contratoUrl} target="_blank" rel="noreferrer"
+          <a href={`${apiInstance.defaults.baseURL}${contratoUrl.replace('/api','')}`} target="_blank" rel="noreferrer"
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             📎 Ver contrato
           </a>
@@ -193,7 +185,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
       ) : (
         <button onClick={() => inputRef.current?.click()} disabled={uploading}
           style={{ width:'100%', fontSize:12, padding:'8px', borderRadius:6, border:'1px dashed #d1d5db', background:'transparent', cursor:'pointer', color:'#6b7280', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          {uploading ? 'Enviando...' : '⬆ Enviar contrato (PDF, DOCX, etc.)'}
+          {uploading ? 'Enviando...' : '⬆ Enviar contrato (PDF, DOCX, PNG, etc.)'}
         </button>
       )}
       <input ref={inputRef} type="file" style={{ display:'none' }}
@@ -367,6 +359,7 @@ export default function Tecnicos() {
                   id={editId}
                   contratoUrl={lista.find(t => t.id === editId)?.contrato_url || null}
                   onAtualizar={(url) => atualizarContrato(editId, url)}
+                  apiInstance={api}
                 />
               )}
               {erro && <div style={{ background:'#fee2e2', color:'#991b1b', borderRadius:8, padding:'9px 12px', fontSize:13 }}>{erro}</div>}
