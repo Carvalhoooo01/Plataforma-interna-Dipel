@@ -8,9 +8,20 @@ const allowedOrigins = [
   'https://plataforma-interna-dipel.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
+
 app.use(cors({ origin: allowedOrigins, credentials: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Pula express.json() para rotas de upload de contrato (raw binary)
+app.use((req, res, next) => {
+  const isContratoUpload = req.method === 'POST' && req.path.includes('/contrato');
+  if (isContratoUpload) return next();
+  express.json()(req, res, next);
+});
+app.use((req, res, next) => {
+  const isContratoUpload = req.method === 'POST' && req.path.includes('/contrato');
+  if (isContratoUpload) return next();
+  express.urlencoded({ extended: true })(req, res, next);
+});
 
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, _res, next) => { console.log(`[${req.method}] ${req.path}`); next(); });
