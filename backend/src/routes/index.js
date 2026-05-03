@@ -24,8 +24,10 @@ const API_KEY    = '754394543815596';
 function cloudinaryUploadRaw(fileBuffer, fileName, folder) {
   return new Promise((resolve, reject) => {
     const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+    if (!API_SECRET) { reject(new Error('CLOUDINARY_API_SECRET não configurado')); return; }
     const timestamp  = Math.floor(Date.now() / 1000);
-    const sigStr     = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
+    // resource_type incluído na assinatura em ordem alfabética
+    const sigStr     = `folder=${folder}&resource_type=raw&timestamp=${timestamp}${API_SECRET}`;
     const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
     const boundary   = '----CloudinaryBoundary' + Date.now();
     const parts      = [];
@@ -34,7 +36,8 @@ function cloudinaryUploadRaw(fileBuffer, fileName, folder) {
     addField('timestamp', timestamp);
     addField('signature', signature);
     addField('folder', folder);
-    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${fileName}"\nContent-Type: application/octet-stream\n\n`));
+    addField('resource_type', 'raw');
+    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${encodeURIComponent(fileName)}"\nContent-Type: application/octet-stream\n\n`));
     parts.push(fileBuffer);
     parts.push(Buffer.from(`\n--${boundary}--\n`));
     const body    = Buffer.concat(parts);
