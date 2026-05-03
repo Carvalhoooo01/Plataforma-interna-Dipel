@@ -172,7 +172,7 @@ r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
-r.get('/tecnicos/:id/contrato/arquivo', autenticar, async (req, res) => {
+r.get('/tecnicos/:id/contrato/arquivo', async (req, res) => {
   try {
     const contratosDir = path.join(__dirname, '../../uploads/contratos');
     const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
@@ -415,7 +415,7 @@ r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
-r.get('/colaboradores/:id/contrato/arquivo', autenticar, async (req, res) => {
+r.get('/colaboradores/:id/contrato/arquivo', async (req, res) => {
   try {
     const contratosDir = path.join(__dirname, '../../uploads/contratos');
     const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
