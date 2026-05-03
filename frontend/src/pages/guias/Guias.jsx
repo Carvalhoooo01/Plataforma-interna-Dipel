@@ -374,39 +374,54 @@ export default function Guias() {
     const contAtual = checklistConts[catAtiva] || catAtual;
     const data      = new Date().toLocaleDateString('pt-BR');
 
-    let stepsHtml = '';
-    contAtual.steps.forEach((s, i) => {
-      const fotos = (s.imgs || []).filter(u => u);
-      const fotosHtml = fotos.length > 0
-        ? fotos.map(url => '<img src="' + url + '" style="width:170px;height:128px;object-fit:cover;border:1px solid #ddd;border-radius:6px;"/>').join('')
-        : '<div style="width:170px;height:48px;border:1px dashed #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;">Sem foto</div>';
-      stepsHtml += '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #e5e7eb;">'
-        + '<div style="width:26px;height:26px;border-radius:50%;background:#1a56db;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + (i + 1) + '</div>'
-        + '<div style="flex:1;">'
-        + '<div style="font-weight:600;font-size:12px;margin-bottom:6px;">' + s.titulo + '</div>'
-        + '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + fotosHtml + '</div>'
-        + '</div></div>';
-    });
+    const gerarPDF = () => {
+      let stepsHtml = '';
+      contAtual.steps.forEach((s, i) => {
+        const fotos = (s.imgs || []).filter(u => u);
+        const fotosHtml = fotos.length > 0
+          ? fotos.map(url => '<img src="' + url + '" crossorigin="anonymous" style="width:170px;height:128px;object-fit:cover;border:1px solid #ddd;border-radius:6px;"/>').join('')
+          : '<div style="width:170px;height:48px;border:1px dashed #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;">Sem foto</div>';
+        stepsHtml += '<div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #e5e7eb;">'
+          + '<div style="width:26px;height:26px;border-radius:50%;background:#1a56db;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + (i + 1) + '</div>'
+          + '<div style="flex:1;">'
+          + '<div style="font-weight:600;font-size:12px;margin-bottom:6px;">' + s.titulo + '</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + fotosHtml + '</div>'
+          + '</div></div>';
+      });
 
-    const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"/>'
-      + '<title>Checklist — ' + catAtual.label + '</title>'
-      + '<style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:12px; color:#111; padding:24px; } @media print { body { padding:16px; } }</style>'
-      + '</head><body>'
-      + '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a56db;padding-bottom:10px;margin-bottom:20px;">'
-      + '<div><div style="font-size:18px;font-weight:700;color:#1a56db;">Checklist — ' + catAtual.label + '</div>'
-      + '<div style="font-size:10px;color:#666;margin-top:3px;">Dipelnet — Padrão de verificação fotográfica</div></div>'
-      + '<div style="font-size:10px;color:#666;text-align:right;">Data: ' + data + '<br/>Técnico: ___________________________</div>'
-      + '</div>'
-      + stepsHtml
-      + '<div style="margin-top:20px;padding:10px 14px;background:#fef3c7;border-left:4px solid #d97706;font-size:10px;color:#92400e;">' + (contAtual.aviso_perigo || '') + '</div>'
-      + '<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;">Gerado em ' + data + ' — Plataforma Interna Dipelnet</div>'
-      + '</body></html>';
+      const el = document.createElement('div');
+      el.style.cssText = 'font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px;width:210mm;';
+      el.innerHTML = '<div style="display:flex;justify-content:space-between;border-bottom:2px solid #1a56db;padding-bottom:10px;margin-bottom:20px;">'
+        + '<div><div style="font-size:18px;font-weight:700;color:#1a56db;">Checklist — ' + catAtual.label + '</div>'
+        + '<div style="font-size:10px;color:#666;margin-top:3px;">Dipelnet — Padrão de verificação fotográfica</div></div>'
+        + '<div style="font-size:10px;color:#666;text-align:right;">Data: ' + data + '<br/>Técnico: ___________________________</div>'
+        + '</div>'
+        + stepsHtml
+        + '<div style="margin-top:20px;padding:10px 14px;background:#fef3c7;border-left:4px solid #d97706;font-size:10px;color:#92400e;">' + (contAtual.aviso_perigo || '') + '</div>'
+        + '<div style="margin-top:24px;font-size:9px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;">Gerado em ' + data + ' — Plataforma Interna Dipelnet</div>';
 
-    const win = window.open('', '_blank');
-    win.document.write(html);
-    win.document.close();
-    setTimeout(() => win.print(), 800);
+      document.body.appendChild(el);
+
+      window.html2pdf().set({
+        margin:      [8, 8, 8, 8],
+        filename:    'Checklist-' + catAtual.label.replace(/[^a-zA-Z0-9]/g, '-') + '.pdf',
+        image:       { type: 'jpeg', quality: 0.92 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(el).save().then(() => document.body.removeChild(el));
+    };
+
+    // Carrega html2pdf dinamicamente se ainda não estiver disponível
+    if (window.html2pdf) {
+      gerarPDF();
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+      script.onload = gerarPDF;
+      document.head.appendChild(script);
+    }
   };
+
 
   // ── CHECKLIST VIEW ──
   if (verChecklist) {
