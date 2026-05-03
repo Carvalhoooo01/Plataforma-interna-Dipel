@@ -29,23 +29,39 @@ export const getAvisosNaoLidos = (lista) => {
 
 export default function Avisos() {
   const { temRole, podeEditar: podeEditarCtx, usuario } = useAuth();
-  const [lista, setLista]   = useState([]);
-  const [modal, setModal]   = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm]     = useState(FORM_INI);
-  const [erro, setErro]     = useState('');
-  const [salvando, setSalv] = useState(false);
+  const [lista, setLista]         = useState([]);
+  const [modal, setModal]         = useState(false);
+  const [editId, setEditId]       = useState(null);
+  const [form, setForm]           = useState(FORM_INI);
+  const [erro, setErro]           = useState('');
+  const [salvando, setSalv]       = useState(false);
+  const [permNotif, setPermNotif] = useState(Notification.permission);
   const podeEditar = temRole('admin', 'gestor') || podeEditarCtx('avisos');
 
   useEffect(() => { carregar(); }, []);
 
   const carregar = () => api.get('/avisos').then(r => {
     setLista(r.data);
-    // Marca todos como lidos ao abrir a página
     r.data.forEach(a => marcarLido(a.id));
-    // Dispara evento para o Sidebar atualizar o contador
     window.dispatchEvent(new Event('avisos-lidos'));
   }).catch(() => {});
+
+  const ativarNotificacoes = async () => {
+    if (!('Notification' in window)) {
+      alert('Seu navegador não suporta notificações.');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    setPermNotif(perm);
+    if (perm === 'granted') {
+      // Salva avisos atuais como vistos para não notificar os antigos
+      localStorage.setItem('dp_avisos_vistos', JSON.stringify(lista.map(a => a.id)));
+      new Notification('✅ Notificações ativadas!', {
+        body: 'Você receberá alertas quando novos avisos forem publicados.',
+        icon: '/favicon.png',
+      });
+    }
+  };
 
   const abrirModal = (a = null) => {
     setEditId(a?.id || null);
@@ -74,14 +90,30 @@ export default function Avisos() {
 
   return (
     <div>
-      {podeEditar && (
-        <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        {/* Botão de notificações */}
+        {'Notification' in window && permNotif !== 'denied' && (
+          permNotif === 'granted' ? (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              Notificações ativas
+            </div>
+          ) : (
+            <button onClick={ativarNotificacoes}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              Ativar notificações
+            </button>
+          )
+        )}
+
+        {podeEditar && (
           <button onClick={() => abrirModal()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors ml-auto">
             + Novo Aviso
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {lista.length === 0 && (
         <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">Nenhum aviso publicado ainda.</div>

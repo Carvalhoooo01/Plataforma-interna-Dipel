@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { useToggleDark, useDark } from '../../contexts/ThemeContext';
+import api from '../../services/api';
 
 const PAGE = {
   '/dashboard':    ['Dashboard',             'Visão geral do sistema'],
@@ -14,14 +15,63 @@ const PAGE = {
   '/reciclagem':   ['Manual de Reciclagem',   'Documentação de reciclagem'],
 };
 
+const getVistos = () => {
+  try { return JSON.parse(localStorage.getItem('dp_avisos_vistos') || '[]'); }
+  catch { return []; }
+};
+
+const salvarVistos = (ids) => {
+  localStorage.setItem('dp_avisos_vistos', JSON.stringify(ids));
+};
+
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const dark       = useDark();
   const toggleDark = useToggleDark();
   const { pathname } = useLocation();
   const [title, sub = ''] = PAGE[pathname] || ['Dipelnet', ''];
+  const pollingRef = useRef(null);
+  const iniciadoRef = useRef(false);
 
   useEffect(() => { setSidebarOpen(false); }, [pathname]);
+
+  // ── POLLING DE AVISOS ────────────────────────────────
+  useEffect(() => {
+    if (iniciadoRef.current) return;
+    iniciadoRef.current = true;
+
+    const verificarAvisos = async () => {
+      // Só notifica se o usuário deu permissão
+      if (Notification.permission !== 'granted') return;
+
+      try {
+        const { data } = await api.get('/avisos');
+        const vistos = getVistos();
+        const novos  = data.filter(a => !vistos.includes(a.id));
+
+        if (novos.length > 0 && vistos.length > 0) {
+          // Só notifica se já havia avisos antes (não na primeira carga)
+          novos.forEach(a => {
+            new Notification('📢 Dipelnet — ' + a.titulo, {
+              body:  a.corpo.slice(0, 100) + (a.corpo.length > 100 ? '...' : ''),
+              icon:  '/favicon.png',
+              badge: '/favicon.png',
+              tag:   'aviso-' + a.id,
+            });
+          });
+        }
+
+        // Atualiza lista de vistos
+        salvarVistos(data.map(a => a.id));
+      } catch {}
+    };
+
+    // Verifica imediatamente e depois a cada 60s
+    verificarAvisos();
+    pollingRef.current = setInterval(verificarAvisos, 60000);
+
+    return () => clearInterval(pollingRef.current);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-200">
