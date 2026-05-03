@@ -3,6 +3,8 @@ const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const pool     = require('../config/database');
 const { autenticar, autorizar } = require('../middleware/auth');
+const fs   = require('fs');
+const path = require('path');
 
 const r = express.Router();
 
@@ -149,6 +151,55 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
+// ── CONTRATO TÉCNICO ──────────────────────────────────
+r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
+    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
+    const fileName = `tecnico-${req.params.id}.${ext}`;
+    const filePath = path.join(contratosDir, fileName);
+    const chunks   = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', async () => {
+      fs.writeFileSync(filePath, Buffer.concat(chunks));
+      const url = `/api/tecnicos/${req.params.id}/contrato/arquivo`;
+      await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+      res.json({ ok: true, url });
+    });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.get('/tecnicos/:id/contrato/arquivo', autenticar, async (req, res) => {
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
+    if (!file) return res.status(404).send('Contrato não encontrado');
+    const filePath = path.join(contratosDir, file);
+    const ext = file.split('.').pop().toLowerCase();
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.delete('/tecnicos/:id/contrato', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
+    if (file) fs.unlinkSync(path.join(contratosDir, file));
+    await pool.query('UPDATE tecnicos SET contrato_url=NULL WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
 // ── EQUIPAMENTOS ──────────────────────────────────────
 r.get('/equipamentos', autenticar, async (req, res) => {
   try {
@@ -216,13 +267,11 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
     const slug  = req.params.id;
     const isNum = /^\d+$/.test(slug);
 
-    // Busca o guia (por id ou slug)
     const query = isNum
       ? 'SELECT id, conteudo FROM guias WHERE id=$1'
       : 'SELECT id, conteudo FROM guias WHERE slug=$1';
     let { rows } = await pool.query(query, [slug]);
 
-    // Se não existe no banco (ex: checklist), cria o registro automaticamente
     if (!rows.length) {
       if (isNum) return res.status(404).json({ erro: 'Guia não encontrado' });
       const ins = await pool.query(
@@ -235,31 +284,18 @@ r.put('/guias/:id/imagem', autenticar, async (req, res) => {
 
     const { id, conteudo } = rows[0];
     if (!conteudo.steps) conteudo.steps = [];
-
-    // Garante que o step existe
     while (conteudo.steps.length <= step_index) conteudo.steps.push({ imgs: [] });
     if (!Array.isArray(conteudo.steps[step_index].imgs)) conteudo.steps[step_index].imgs = [];
 
     const imgs = conteudo.steps[step_index].imgs;
-
     if (url === null || url === undefined) {
-      // REMOÇÃO: splice para remover o elemento do array
-      if (img_index !== undefined && img_index < imgs.length) {
-        imgs.splice(img_index, 1);
-      }
+      if (img_index !== undefined && img_index < imgs.length) imgs.splice(img_index, 1);
     } else {
-      // ADIÇÃO / TROCA
-      if (img_index !== undefined && img_index < imgs.length) {
-        imgs[img_index] = url;
-      } else {
-        imgs.push(url);
-      }
+      if (img_index !== undefined && img_index < imgs.length) imgs[img_index] = url;
+      else imgs.push(url);
     }
 
-    await pool.query(
-      'UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2',
-      [JSON.stringify(conteudo), id]
-    );
+    await pool.query('UPDATE guias SET conteudo=$1, atualizado_em=NOW() WHERE id=$2', [JSON.stringify(conteudo), id]);
     res.json({ mensagem: 'Imagem atualizada com sucesso', url });
   } catch (err) {
     res.status(500).json({ erro: 'Erro ao salvar imagem', detalhe: err.message });
@@ -325,11 +361,11 @@ r.post('/colaboradores', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const { nome, cargo, setor, ordem = 0 } = req.body;
+    const { nome, cargo, setor, ordem = 0, telefone } = req.body;
     if (!nome || !cargo || !setor) return res.status(400).json({ erro: 'Nome, cargo e setor obrigatórios' });
     const { rows } = await pool.query(
-      'INSERT INTO colaboradores (nome, cargo, setor, ordem) VALUES ($1,$2,$3,$4) RETURNING *',
-      [nome, cargo, setor, ordem]
+      'INSERT INTO colaboradores (nome, cargo, setor, ordem, telefone) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [nome, cargo, setor, ordem, telefone || null]
     );
     res.status(201).json(rows[0]);
   } catch { res.status(500).json({ erro: 'Erro ao criar colaborador' }); }
@@ -339,10 +375,10 @@ r.put('/colaboradores/:id', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const { nome, cargo, setor, ordem } = req.body;
+    const { nome, cargo, setor, ordem, telefone } = req.body;
     const { rows } = await pool.query(
-      'UPDATE colaboradores SET nome=$1, cargo=$2, setor=$3, ordem=COALESCE($4,ordem) WHERE id=$5 RETURNING *',
-      [nome, cargo, setor, ordem, req.params.id]
+      'UPDATE colaboradores SET nome=$1, cargo=$2, setor=$3, ordem=COALESCE($4,ordem), telefone=$5 WHERE id=$6 RETURNING *',
+      [nome, cargo, setor, ordem, telefone || null, req.params.id]
     );
     if (!rows.length) return res.status(404).json({ erro: 'Não encontrado' });
     res.json(rows[0]);
@@ -356,6 +392,55 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
     await pool.query('DELETE FROM colaboradores WHERE id=$1', [req.params.id]);
     res.json({ mensagem: 'Colaborador removido' });
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
+});
+
+// ── CONTRATO COLABORADOR ──────────────────────────────
+r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
+    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
+    const fileName = `colaborador-${req.params.id}.${ext}`;
+    const filePath = path.join(contratosDir, fileName);
+    const chunks   = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', async () => {
+      fs.writeFileSync(filePath, Buffer.concat(chunks));
+      const url = `/api/colaboradores/${req.params.id}/contrato/arquivo`;
+      await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+      res.json({ ok: true, url });
+    });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.get('/colaboradores/:id/contrato/arquivo', autenticar, async (req, res) => {
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
+    if (!file) return res.status(404).send('Contrato não encontrado');
+    const filePath = path.join(contratosDir, file);
+    const ext = file.split('.').pop().toLowerCase();
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.delete('/colaboradores/:id/contrato', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
+    if (file) fs.unlinkSync(path.join(contratosDir, file));
+    await pool.query('UPDATE colaboradores SET contrato_url=NULL WHERE id=$1', [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
 // ── SETORES ───────────────────────────────────────────
@@ -469,7 +554,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Sao Cristovao':'São Cristóvão','Bairro Sao Cristovao':'Bairro São Cristóvão',
   };
   const nAcento = mapAcentos[nA] || n;
-  console.log(`[GEO] "${nAcento}"`);
 
   const osmEntry = OSM_IDS[nAcento] || OSM_IDS[n] || OSM_IDS[nome];
   if (osmEntry) {
@@ -568,7 +652,6 @@ const BAIRROS_CASCAVEL = [
   'Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda',
   'Santo Inácio','Bairro São Cristóvão',
 ];
-
 const CIDADES_PR = [
   'Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora',
   'Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul',
@@ -612,8 +695,6 @@ r.get('/geo/autocomplete', autenticar, async (req, res) => {
 // ── PDF RECICLAGEM ────────────────────────────────────
 const https2 = require('https');
 const crypto = require('crypto');
-const fs   = require('fs');
-const path = require('path');
 const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 
 function cloudinaryUpload(fileBuffer, fileName) {
@@ -716,9 +797,7 @@ r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), asy
         const url      = await cloudinaryUpload(buffer, fileName);
         await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]);
         res.json({ url });
-      } catch(e) {
-        res.status(500).json({ erro: e.message });
-      }
+      } catch(e) { res.status(500).json({ erro: e.message }); }
     });
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });

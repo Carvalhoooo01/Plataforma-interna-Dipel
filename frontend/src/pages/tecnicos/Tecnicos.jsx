@@ -130,6 +130,78 @@ function RegiaoInput({ valor, onChange, dark }) {
   );
 }
 
+
+// ── Seção de contrato ─────────────────────────────────
+function ContratoSection({ tipo, id, contratoUrl, onAtualizar }) {
+  const [uploading, setUploading] = useState(false);
+  const [removendo, setRemovendo] = useState(false);
+  const inputRef = useRef(null);
+
+  const uploadContrato = async (file) => {
+    setUploading(true);
+    try {
+      const buffer = await file.arrayBuffer();
+      const res = await fetch(`/api/${tipo}/${id}/contrato`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'x-filename': file.name,
+          'Content-Type': 'application/octet-stream',
+        },
+        body: buffer,
+      });
+      const data = await res.json();
+      if (data.ok) onAtualizar(data.url);
+      else alert('Erro ao enviar contrato');
+    } catch { alert('Erro ao enviar contrato'); }
+    finally { setUploading(false); }
+  };
+
+  const removerContrato = async () => {
+    if (!confirm('Remover contrato?')) return;
+    setRemovendo(true);
+    try {
+      await fetch(`/api/${tipo}/${id}/contrato`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      });
+      onAtualizar(null);
+    } catch { alert('Erro ao remover'); }
+    finally { setRemovendo(false); }
+  };
+
+  return (
+    <div style={{ border:`1px solid #e5e7eb`, borderRadius:8, padding:12, background:'#f9fafb', marginTop:4 }}>
+      <div style={{ fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:8, textTransform:'uppercase', letterSpacing:.4 }}>
+        📄 Contrato
+      </div>
+      {contratoUrl ? (
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <a href={contratoUrl} target="_blank" rel="noreferrer"
+            style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            📎 Ver contrato
+          </a>
+          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+            style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'1px solid #d1d5db', background:'#fff', cursor:'pointer', color:'#374151' }}>
+            Trocar
+          </button>
+          <button onClick={removerContrato} disabled={removendo}
+            style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'none', background:'#fee2e2', cursor:'pointer', color:'#dc2626' }}>
+            {removendo ? '...' : '×'}
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => inputRef.current?.click()} disabled={uploading}
+          style={{ width:'100%', fontSize:12, padding:'8px', borderRadius:6, border:'1px dashed #d1d5db', background:'transparent', cursor:'pointer', color:'#6b7280', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          {uploading ? 'Enviando...' : '⬆ Enviar contrato (PDF, DOCX, etc.)'}
+        </button>
+      )}
+      <input ref={inputRef} type="file" style={{ display:'none' }}
+        onChange={e => e.target.files?.[0] && uploadContrato(e.target.files[0])}/>
+    </div>
+  );
+}
+
 export default function Tecnicos() {
   const { temRole, podeEditar, podeExcluir } = useAuth();
   const dark = useDark();
@@ -185,6 +257,10 @@ export default function Tecnicos() {
     if (!confirm('Remover técnico?')) return;
     try { await api.delete(`/tecnicos/${id}`); carregar(); }
     catch { alert('Erro ao remover'); }
+  };
+
+  const atualizarContrato = (id, url) => {
+    setLista(prev => prev.map(t => t.id === id ? { ...t, contrato_url: url } : t));
   };
 
   const abrirWhatsApp = (telefone) => {
@@ -285,6 +361,14 @@ export default function Tecnicos() {
                 <div><label style={lbl}>Raio de cobertura (metros)</label><input value={form.raio} onChange={e=>set('raio',e.target.value)} placeholder="Ex: 3000" style={inp}/></div>
                 <div style={{ marginTop:8, fontSize:11, color:c.textMuted }}>Google Maps → botão direito no local → clique nas coordenadas para copiar.</div>
               </div>
+              {editId && (
+                <ContratoSection
+                  tipo="tecnicos"
+                  id={editId}
+                  contratoUrl={lista.find(t => t.id === editId)?.contrato_url || null}
+                  onAtualizar={(url) => atualizarContrato(editId, url)}
+                />
+              )}
               {erro && <div style={{ background:'#fee2e2', color:'#991b1b', borderRadius:8, padding:'9px 12px', fontSize:13 }}>{erro}</div>}
             </div>
 

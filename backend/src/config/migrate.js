@@ -99,10 +99,15 @@ const migrate = async () => {
       );
     `);
 
-    // Colunas extras
+    // Colunas extras existentes
     await client.query(`ALTER TABLE tecnicos ADD COLUMN IF NOT EXISTS raio DOUBLE PRECISION;`);
     await client.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS permissoes JSONB DEFAULT '{}';`);
     await client.query(`CREATE TABLE IF NOT EXISTS configuracoes (chave VARCHAR(100) PRIMARY KEY, valor TEXT);`);
+
+    // ── NOVAS COLUNAS: telefone e contrato ──────────
+    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS telefone VARCHAR(20);`);
+    await client.query(`ALTER TABLE colaboradores ADD COLUMN IF NOT EXISTS contrato_url TEXT;`);
+    await client.query(`ALTER TABLE tecnicos      ADD COLUMN IF NOT EXISTS contrato_url TEXT;`);
 
     // Seeds
     await client.query(`INSERT INTO setores (nome, descricao) VALUES ('Campo','Setor de instalação e manutenção') ON CONFLICT (nome) DO NOTHING;`);
@@ -166,7 +171,7 @@ const migrate = async () => {
           alerta:'Configuração feita na interface web da ONT Huawei. Cascavel e Corbélia usam servidor 187.49.80.21.',
           steps:[
             {titulo:'Acessar Voice → VoIP Basic',descricao:'Interface web da ONT → Voice → VoIP Basic → "Basic Profile Parameters (SIP)".',tip:null,imgs:[null]},
-            {titulo:'Configurar servidores SIP',descricao:'Preencha 187.49.80.21 (Cascavel/Corbélia) em:\n• Outbound Proxy Server\n• Standby Outbound Proxy Server\n• Primary Proxy Server\n• Standby Proxy Server\n• Home Domain\nPortas: todas em 5060',tip:'⚠ Todos os campos devem ter o mesmo IP.',imgs:[null,null]},
+            {titulo:'Configurar servidores SIP',descricao:'Preencha 187.49.80.21 em:\n• Outbound Proxy Server\n• Standby Outbound Proxy Server\n• Primary Proxy Server\n• Standby Proxy Server\n• Home Domain\nPortas: todas em 5060',tip:'⚠ Todos os campos devem ter o mesmo IP.',imgs:[null,null]},
             {titulo:'Signaling Port e Region',descricao:'• Signaling Port: 2_VOIP_R_VID_20\n• Media Port: 2_VOIP_R_VID_20\n• Region: Brazil',tip:null,imgs:[]},
             {titulo:'Configurar usuário SIP',descricao:'Basic User Parameters → New:\n• Enable User: ✅\n• URI: [número da linha]\n• Registration User Name: [mesmo número]\n• Associated POTS Port: 1\n• Authentication User Name: [mesmo número]\n• Password: [senha fornecida]\n→ Apply',tip:'Linha e senha fornecidas pelo setor responsável.',imgs:[null]},
             {titulo:'Verificar registro VoIP',descricao:'Service Provisioning → VoIP:\n• User Status: Up\n• Call Status: Idle\n✅ Up + Idle = registrado com sucesso!',tip:null,imgs:[null]},
@@ -204,41 +209,9 @@ const migrate = async () => {
 
     // ── CHECKLISTS DE CAMPO ──────────────────────────
     const checklists = [
-      {
-        slug: 'checklist-instalacao',
-        titulo: 'Checklist — Instalação Padrão',
-        descricao: 'Fotos obrigatórias para toda instalação de fibra residencial ou comercial.',
-        categoria: 'Checklist',
-        conteudo: { badge:'bc', badgeText:'12 itens', steps: Array(12).fill({ titulo:'', descricao:'', imgs:[] }), aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.' }
-      },
-      {
-        slug: 'checklist-predios',
-        titulo: 'Checklist — Prédios / Pontos Adicionais',
-        descricao: 'Segue o padrão de instalação padrão com fotos adicionais.',
-        categoria: 'Checklist',
-        conteudo: { badge:'bc', badgeText:'15 itens', steps: Array(15).fill({ titulo:'', descricao:'', imgs:[] }), aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.' }
-      },
-      {
-        slug: 'checklist-loss-ponteiras',
-        titulo: 'Checklist — LOSS: Ponteiras / Sinal Alto',
-        descricao: 'Fotos obrigatórias para manutenção de LOSS por ponteiras ou sinal alto.',
-        categoria: 'Checklist',
-        conteudo: { badge:'bc', badgeText:'11 itens', steps: Array(11).fill({ titulo:'', descricao:'', imgs:[] }), aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.' }
-      },
-      {
-        slug: 'checklist-loss-relancamentos',
-        titulo: 'Checklist — LOSS: Relançamentos',
-        descricao: 'Fotos obrigatórias para manutenção de LOSS por relançamento de fibra.',
-        categoria: 'Checklist',
-        conteudo: { badge:'bc', badgeText:'13 itens', steps: Array(13).fill({ titulo:'', descricao:'', imgs:[] }), aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.' }
-      },
-      {
-        slug: 'checklist-suporte-geral',
-        titulo: 'Checklist — Suporte Geral / Ponto Adicional',
-        descricao: 'Fotos para manutenção de suporte geral, ponto adicional ou mudança de ponto.',
-        categoria: 'Checklist',
-        conteudo: { badge:'bc', badgeText:'9 itens', steps: Array(9).fill({ titulo:'', descricao:'', imgs:[] }), aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.' }
-      },
+      { slug:'checklist-instalacao',    titulo:'Checklist — Instalação Padrão',                 descricao:'Fotos obrigatórias para toda instalação.', categoria:'Checklist', conteudo:{badge:'bc',badgeText:'10 itens',steps:Array(10).fill({titulo:'',descricao:'',imgs:[]}),aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.'} },
+      { slug:'checklist-predios',       titulo:'Checklist — Prédios / Pontos Adicionais',       descricao:'Instalação padrão + fotos adicionais.',     categoria:'Checklist', conteudo:{badge:'bc',badgeText:'11 itens',steps:Array(11).fill({titulo:'',descricao:'',imgs:[]}),aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.'} },
+      { slug:'checklist-loss-ponteiras',titulo:'Checklist — LOSS: Ponteiras / Sinal Alto / Relançamentos', descricao:'Fotos para LOSS.',              categoria:'Checklist', conteudo:{badge:'bc',badgeText:'13 itens',steps:Array(13).fill({titulo:'',descricao:'',imgs:[]}),aviso_perigo:'Todas as fotos devem estar com localização do app Conota Camera e renomeadas no sistema.'} },
     ];
 
     for (const c of checklists) {
