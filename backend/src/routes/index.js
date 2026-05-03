@@ -21,49 +21,6 @@ const temPermissao = (usuario, permissao) => {
 const CLOUD_NAME = 'dinfzopjh';
 const API_KEY    = '754394543815596';
 
-function cloudinaryUploadRaw(fileBuffer, fileName, folder) {
-  return new Promise((resolve, reject) => {
-    const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
-    if (!API_SECRET) { reject(new Error('CLOUDINARY_API_SECRET não configurado')); return; }
-    const timestamp  = Math.floor(Date.now() / 1000);
-    // resource_type incluído na assinatura em ordem alfabética
-    const sigStr     = `folder=${folder}&resource_type=raw&timestamp=${timestamp}${API_SECRET}`;
-    const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
-    const boundary   = '----CloudinaryBoundary' + Date.now();
-    const parts      = [];
-    const addField   = (name, value) => parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
-    addField('api_key', API_KEY);
-    addField('timestamp', timestamp);
-    addField('signature', signature);
-    addField('folder', folder);
-    addField('resource_type', 'raw');
-    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${encodeURIComponent(fileName)}"\nContent-Type: application/octet-stream\n\n`));
-    parts.push(fileBuffer);
-    parts.push(Buffer.from(`\n--${boundary}--\n`));
-    const body    = Buffer.concat(parts);
-    const options = {
-      hostname: 'api.cloudinary.com',
-      path: `/v1_1/${CLOUD_NAME}/raw/upload`,
-      method: 'POST',
-      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
-    };
-    const req = https2.request(options, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (json.secure_url) resolve(json.secure_url);
-          else reject(new Error(json.error?.message || 'Upload falhou'));
-        } catch { reject(new Error('Resposta inválida')); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
 // ── AUTH ─────────────────────────────────────────────
 r.post('/auth/login', async (req, res) => {
   try {
@@ -200,28 +157,50 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
-// ── CONTRATO TÉCNICO (Cloudinary) ─────────────────────
+// ── CONTRATO TÉCNICO ──────────────────────────────────
 r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  const chunks = [];
-  req.on('data', c => chunks.push(c));
-  req.on('end', async () => {
-    try {
-      const buffer   = Buffer.concat(chunks);
-      const fileName = req.headers['x-filename'] || `contrato-tecnico-${req.params.id}`;
-      const url      = await cloudinaryUploadRaw(buffer, fileName, 'dipelnet/contratos/tecnicos');
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
+    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
+    const fileName = `tecnico-${req.params.id}.${ext}`;
+    const filePath = path.join(contratosDir, fileName);
+    const chunks   = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', async () => {
+      fs.writeFileSync(filePath, Buffer.concat(chunks));
+      const url = `/api/tecnicos/${req.params.id}/contrato/arquivo`;
       await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    } catch(e) { res.status(500).json({ erro: e.message }); }
-  });
-  req.on('error', e => res.status(500).json({ erro: e.message }));
+    });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.get('/tecnicos/:id/contrato/arquivo', async (req, res) => {
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
+    if (!file) return res.status(404).send('Contrato não encontrado');
+    const filePath = path.join(contratosDir, file);
+    const ext = file.split('.').pop().toLowerCase();
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
 r.delete('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
+    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE tecnicos SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
@@ -416,28 +395,50 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
-// ── CONTRATO COLABORADOR (Cloudinary) ─────────────────
+// ── CONTRATO COLABORADOR ──────────────────────────────
 r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  const chunks = [];
-  req.on('data', c => chunks.push(c));
-  req.on('end', async () => {
-    try {
-      const buffer   = Buffer.concat(chunks);
-      const fileName = req.headers['x-filename'] || `contrato-colaborador-${req.params.id}`;
-      const url      = await cloudinaryUploadRaw(buffer, fileName, 'dipelnet/contratos/colaboradores');
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
+    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
+    const fileName = `colaborador-${req.params.id}.${ext}`;
+    const filePath = path.join(contratosDir, fileName);
+    const chunks   = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', async () => {
+      fs.writeFileSync(filePath, Buffer.concat(chunks));
+      const url = `/api/colaboradores/${req.params.id}/contrato/arquivo`;
       await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    } catch(e) { res.status(500).json({ erro: e.message }); }
-  });
-  req.on('error', e => res.status(500).json({ erro: e.message }));
+    });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.get('/colaboradores/:id/contrato/arquivo', async (req, res) => {
+  try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
+    if (!file) return res.status(404).send('Contrato não encontrado');
+    const filePath = path.join(contratosDir, file);
+    const ext = file.split('.').pop().toLowerCase();
+    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
+    fs.createReadStream(filePath).pipe(res);
+  } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
 r.delete('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
+    const contratosDir = path.join(__dirname, '../../uploads/contratos');
+    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
+    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
+    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE colaboradores SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
