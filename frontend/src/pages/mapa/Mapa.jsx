@@ -83,7 +83,7 @@ function buildTooltipHTML(reg, tecsDaRegiao) {
     const tc = item.t, c = item.cor;
     const s = tc.status==='Disponível' ? {bg:'rgba(5,150,105,.25)',cl:'#6ee7b7'} : tc.status==='Em campo' ? {bg:'rgba(217,119,6,.25)',cl:'#fcd34d'} : {bg:'rgba(156,163,175,.2)',cl:'#d1d5db'};
     const nome2 = tc.nome.split(' ').slice(0,2).join(' ');
-    html += '<button data-tecid="' + tc.id + '" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:8px;cursor:pointer;margin-bottom:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:left" onmouseover="this.style.background='rgba(255,255,255,.15)';this.style.borderColor='' + c + ''" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.borderColor='rgba(255,255,255,.1)'">';
+    html += '<button data-tecid="' + tc.id + '" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:8px;cursor:pointer;margin-bottom:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:left">';
     html += '<div style="width:11px;height:11px;border-radius:50%;background:' + c + ';flex-shrink:0;box-shadow:0 0 0 2px rgba(0,0,0,.3),0 0 0 4px ' + c + '44"></div>';
     html += '<span style="flex:1;font-size:13px;font-weight:600;color:#f1f5f9">' + nome2 + '</span>';
     html += '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:' + s.bg + ';color:' + s.cl + ';font-weight:600">' + tc.status + '</span>';
