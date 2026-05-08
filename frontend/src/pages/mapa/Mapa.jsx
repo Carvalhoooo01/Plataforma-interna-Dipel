@@ -20,10 +20,12 @@ const geoPending = {};
 const BAIRROS_CASCAVEL = new Set([
   '14 de Novembro','XIV de Novembro','Alto Alegre','Aroeira','Bairro São Cristóvão','Brasília',
   'Brasmadeira','Canadá','Cancelli','Cascavel Velho','Cataratas','Centro','Coqueiral','Country',
-  'Esmeralda','Fag','Floresta','Guarujá','Interlagos','Maria Luiza','Morumbi','Neva','Pacaembu',
+  'Esmeralda','Fag','FAG','Floresta','Guarujá','Interlagos','Maria Luiza','Morumbi','Neva','Pacaembu',
   'Parque São Paulo','Parque Verde','Periolo','Pioneiros Catarinenses','Recanto Tropical',
   'Região do Lago','Santa Cruz','Santa Felicidade','Santo Inácio','Santo Onofre','Santos Dumont',
   'São Cristóvão','Tropical','Universitário','Vila Tolentino','Vista Linda',
+  'Independência','Barcelona','Riviera','Florais do Paraná','Jardim Mantovani',
+  'Claudete','Vila Militar','Jardim Veneza',
 ]);
 
 let ibgeMunicipios = null;
@@ -81,7 +83,7 @@ function buildTooltipHTML(reg, tecsDaRegiao) {
     const tc = item.t, c = item.cor;
     const s = tc.status==='Disponível' ? {bg:'rgba(5,150,105,.25)',cl:'#6ee7b7'} : tc.status==='Em campo' ? {bg:'rgba(217,119,6,.25)',cl:'#fcd34d'} : {bg:'rgba(156,163,175,.2)',cl:'#d1d5db'};
     const nome2 = tc.nome.split(' ').slice(0,2).join(' ');
-    html += '<button data-tecid="' + tc.id + '" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:8px;cursor:pointer;margin-bottom:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:left" onmouseover="this.style.background=\'rgba(255,255,255,.15)\';this.style.borderColor=\'' + c + '\'" onmouseout="this.style.background=\'rgba(255,255,255,.05)\';this.style.borderColor=\'rgba(255,255,255,.1)\'">';
+    html += '<button data-tecid="' + tc.id + '" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:8px;cursor:pointer;margin-bottom:5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:left" onmouseover="this.style.background='rgba(255,255,255,.15)';this.style.borderColor='' + c + ''" onmouseout="this.style.background='rgba(255,255,255,.05)';this.style.borderColor='rgba(255,255,255,.1)'">';
     html += '<div style="width:11px;height:11px;border-radius:50%;background:' + c + ';flex-shrink:0;box-shadow:0 0 0 2px rgba(0,0,0,.3),0 0 0 4px ' + c + '44"></div>';
     html += '<span style="flex:1;font-size:13px;font-weight:600;color:#f1f5f9">' + nome2 + '</span>';
     html += '<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:' + s.bg + ';color:' + s.cl + ';font-weight:600">' + tc.status + '</span>';
@@ -90,7 +92,6 @@ function buildTooltipHTML(reg, tecsDaRegiao) {
   return html;
 }
 
-// ── Legenda ──────────────────────────────────────────────────────────────────
 function Legenda({ tecs, sel, setSel, destacar, resetarDestaques, mapInst, dark }) {
   const c = tk(dark);
   return (
@@ -138,7 +139,6 @@ function Legenda({ tecs, sel, setSel, destacar, resetarDestaques, mapInst, dark 
   );
 }
 
-// ── Mapa ─────────────────────────────────────────────────────────────────────
 export default function Mapa() {
   const dark = useDark();
   const c    = tk(dark);
@@ -343,7 +343,6 @@ export default function Mapa() {
 
   return (
     <div>
-      {/* Stats */}
       <div style={{display:'grid',gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)',gap:isMobile?8:12,marginBottom:12}}>
         {[
           {label:'Total técnicos', value:tecs.length, color:'#1a56db'},
@@ -358,7 +357,6 @@ export default function Mapa() {
         ))}
       </div>
 
-      {/* Mapa */}
       <div style={{position:'relative',borderRadius:12,overflow:'hidden',border:`1px solid ${c.cardBorder}`,boxShadow:'0 4px 16px rgba(0,0,0,.1)'}}>
         <div ref={mapRef} style={{height:isMobile?340:520,background:'#e5e7eb'}} />
 
@@ -369,7 +367,6 @@ export default function Mapa() {
           </div>
         )}
 
-        {/* Tooltip — sempre escuro */}
         <div
           ref={tooltipEl}
           onMouseEnter={() => { if(tooltipEl.current){ tooltipEl.current._over=true; clearTimeout(tooltipEl.current._hideTimer); }}}
@@ -377,7 +374,6 @@ export default function Mapa() {
           style={{position:'absolute',display:'none',background:'#1e293b',borderRadius:10,padding:'10px 14px',boxShadow:'0 8px 32px rgba(0,0,0,.35)',zIndex:30,minWidth:210,maxWidth:270,pointerEvents:'auto',cursor:'default'}}
         />
 
-        {/* Legenda flutuante — desktop */}
         {!isMobile && (
           <div style={{position:'absolute',bottom:16,right:16,background: dark ? 'rgba(30,41,59,.97)' : 'rgba(255,255,255,.97)',borderRadius:10,padding:'12px 14px',boxShadow:'0 2px 12px rgba(0,0,0,.2)',minWidth:190,maxWidth:220,zIndex:5,maxHeight:400,overflowY:'auto',border:`1px solid ${c.cardBorder}`}}>
             <Legenda {...legendaProps} />
@@ -385,14 +381,12 @@ export default function Mapa() {
         )}
       </div>
 
-      {/* Legenda inline — mobile */}
       {isMobile && (
         <div style={{background:c.card,border:`1px solid ${c.cardBorder}`,borderRadius:10,padding:'12px 14px',marginTop:10,boxShadow:'0 1px 3px rgba(0,0,0,.08)'}}>
           <Legenda {...legendaProps} />
         </div>
       )}
 
-      {/* Cards dos técnicos */}
       <div style={{marginTop:12,display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:10}}>
         {tecs.map((t, idx) => {
           const sc  = ST[t.status]||ST['Folga'];
@@ -435,7 +429,7 @@ export default function Mapa() {
         })}
       </div>
 
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{\`@keyframes spin{to{transform:rotate(360deg)}}\`}</style>
     </div>
   );
 }
