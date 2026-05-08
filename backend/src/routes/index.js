@@ -181,50 +181,28 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
-// ── CONTRATO TÉCNICO ──────────────────────────────────
+// ── CONTRATO TÉCNICO (Cloudinary) ─────────────────────
 r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
-    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
-    const fileName = `tecnico-${req.params.id}.${ext}`;
-    const filePath = path.join(contratosDir, fileName);
-    const chunks   = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', async () => {
-      fs.writeFileSync(filePath, Buffer.concat(chunks));
-      const url = `/api/tecnicos/${req.params.id}/contrato/arquivo`;
+  const chunks = [];
+  req.on('data', c => chunks.push(c));
+  req.on('end', async () => {
+    try {
+      const buffer   = Buffer.concat(chunks);
+      const fileName = req.headers['x-filename'] || `contrato-tecnico-${req.params.id}`;
+      const url      = await cloudinaryUpload(buffer, fileName, 'dipelnet/contratos');
       await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.get('/tecnicos/:id/contrato/arquivo', async (req, res) => {
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
-    if (!file) return res.status(404).send('Contrato não encontrado');
-    const filePath = path.join(contratosDir, file);
-    const ext = file.split('.').pop().toLowerCase();
-    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
-    fs.createReadStream(filePath).pipe(res);
-  } catch(e) { res.status(500).json({ erro: e.message }); }
+    } catch(e) { res.status(500).json({ erro: e.message }); }
+  });
+  req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
 r.delete('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`tecnico-${req.params.id}.`));
-    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE tecnicos SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
@@ -419,50 +397,28 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
-// ── CONTRATO COLABORADOR ──────────────────────────────
+// ── CONTRATO COLABORADOR (Cloudinary) ─────────────────
 r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    if (!fs.existsSync(contratosDir)) fs.mkdirSync(contratosDir, { recursive: true });
-    const ext      = (req.headers['x-filename'] || 'contrato').split('.').pop();
-    const fileName = `colaborador-${req.params.id}.${ext}`;
-    const filePath = path.join(contratosDir, fileName);
-    const chunks   = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', async () => {
-      fs.writeFileSync(filePath, Buffer.concat(chunks));
-      const url = `/api/colaboradores/${req.params.id}/contrato/arquivo`;
+  const chunks = [];
+  req.on('data', c => chunks.push(c));
+  req.on('end', async () => {
+    try {
+      const buffer   = Buffer.concat(chunks);
+      const fileName = req.headers['x-filename'] || `contrato-colaborador-${req.params.id}`;
+      const url      = await cloudinaryUpload(buffer, fileName, 'dipelnet/contratos');
       await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
       res.json({ ok: true, url });
-    });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.get('/colaboradores/:id/contrato/arquivo', async (req, res) => {
-  try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
-    if (!file) return res.status(404).send('Contrato não encontrado');
-    const filePath = path.join(contratosDir, file);
-    const ext = file.split('.').pop().toLowerCase();
-    const mime = ext === 'pdf' ? 'application/pdf' : ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream';
-    res.setHeader('Content-Type', mime);
-    res.setHeader('Content-Disposition', `inline; filename="${file}"`);
-    fs.createReadStream(filePath).pipe(res);
-  } catch(e) { res.status(500).json({ erro: e.message }); }
+    } catch(e) { res.status(500).json({ erro: e.message }); }
+  });
+  req.on('error', e => res.status(500).json({ erro: e.message }));
 });
 
 r.delete('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
   try {
-    const contratosDir = path.join(__dirname, '../../uploads/contratos');
-    const files = fs.existsSync(contratosDir) ? fs.readdirSync(contratosDir) : [];
-    const file  = files.find(f => f.startsWith(`colaborador-${req.params.id}.`));
-    if (file) fs.unlinkSync(path.join(contratosDir, file));
     await pool.query('UPDATE colaboradores SET contrato_url=NULL WHERE id=$1', [req.params.id]);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ erro: e.message }); }
@@ -526,6 +482,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     } catch { return {}; }
   }
   const OSM_IDS = {
+    // ── Relations OSM ─────────────────────────────────
     'Floresta':{ id:6727084,type:'relation' },'Periolo':{ id:6727073,type:'relation' },'Morumbi':{ id:6727086,type:'relation' },
     'Brasília':{ id:6727085,type:'relation' },'Interlagos':{ id:6727083,type:'relation' },'Cascavel Velho':{ id:6727076,type:'relation' },
     'Cataratas':{ id:6727074,type:'relation' },'Região do Lago':{ id:6727067,type:'relation' },'Região do lago':{ id:6727067,type:'relation' },
@@ -535,13 +492,29 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Santa Felicidade':{ id:6727064,type:'relation' },'Maria Luiza':{ id:6727056,type:'relation' },'Neva':{ id:6727063,type:'relation' },
     'Coqueiral':{ id:6727058,type:'relation' },'Canadá':{ id:6727081,type:'relation' },'Canada':{ id:6727081,type:'relation' },
     'Recanto Tropical':{ id:6727079,type:'relation' },'Tropical':{ id:6727079,type:'relation' },
+    'Independência':{ id:11998962,type:'relation' },'Independencia':{ id:11998962,type:'relation' },
+    // ── Ways OSM ──────────────────────────────────────
     'Alto Alegre':{ id:454903448,type:'way' },'Parque São Paulo':{ id:454903443,type:'way' },'Parque Sao Paulo':{ id:454903443,type:'way' },
     'Santa Cruz':{ id:454903447,type:'way' },'Universitário':{ id:454903444,type:'way' },'Universitario':{ id:454903444,type:'way' },
     'Pioneiros Catarinenses':{ id:454903437,type:'way' },'Guarujá':{ id:454903439,type:'way' },'Guaruja':{ id:454903439,type:'way' },
-    'Brasmadeira':{ type:'bbox',minLat:-24.9353,maxLat:-24.9093,minLng:-53.4603,maxLng:-53.4343 },
-    'Santo Onofre':{ type:'bbox',minLat:-24.9858,maxLat:-24.9558,minLng:-53.5123,maxLng:-53.4823 },
-    'Centro':{ type:'bbox',minLat:-24.9800,maxLat:-24.9300,minLng:-53.4893,maxLng:-53.4393 },
-    'Vila Tolentino':{ type:'bbox',minLat:-24.9833,maxLat:-24.9633,minLng:-53.4883,maxLng:-53.4483 },
+    // ── BBox ─────────────────────────────────────────
+    'Brasmadeira':    { type:'bbox',minLat:-24.9353,maxLat:-24.9093,minLng:-53.4603,maxLng:-53.4343 },
+    'Santo Onofre':   { type:'bbox',minLat:-24.9858,maxLat:-24.9558,minLng:-53.5123,maxLng:-53.4823 },
+    'Centro':         { type:'bbox',minLat:-24.9800,maxLat:-24.9300,minLng:-53.4893,maxLng:-53.4393 },
+    'Vila Tolentino': { type:'bbox',minLat:-24.9833,maxLat:-24.9633,minLng:-53.4883,maxLng:-53.4483 },
+    'Barcelona':      { type:'bbox',minLat:-24.9050,maxLat:-24.8750,minLng:-53.4750,maxLng:-53.4450 },
+    'Riviera':        { type:'bbox',minLat:-24.9050,maxLat:-24.8750,minLng:-53.4450,maxLng:-53.4150 },
+    'Florais do Paraná':{ type:'bbox',minLat:-24.9200,maxLat:-24.8950,minLng:-53.4200,maxLng:-53.3900 },
+    'Florais Do Parana':{ type:'bbox',minLat:-24.9200,maxLat:-24.8950,minLng:-53.4200,maxLng:-53.3900 },
+    'Jardim Mantovani':{ type:'bbox',minLat:-24.9200,maxLat:-24.8900,minLng:-53.3950,maxLng:-53.3650 },
+    'Claudete':       { type:'bbox',minLat:-24.9550,maxLat:-24.9250,minLng:-53.5250,maxLng:-53.4950 },
+    'Vila Militar':   { type:'bbox',minLat:-24.9850,maxLat:-24.9550,minLng:-53.4650,maxLng:-53.4350 },
+    'Jardim Veneza':  { type:'bbox',minLat:-24.9950,maxLat:-24.9650,minLng:-53.4350,maxLng:-53.4050 },
+    'Jardim Veneza':  { type:'bbox',minLat:-24.9950,maxLat:-24.9650,minLng:-53.4350,maxLng:-53.4050 },
+    'FAG':            { type:'bbox',minLat:-24.9850,maxLat:-24.9600,minLng:-53.5000,maxLng:-53.4700 },
+    'Fag':            { type:'bbox',minLat:-24.9850,maxLat:-24.9600,minLng:-53.5000,maxLng:-53.4700 },
+    '14 de Novembro': { type:'bbox',minLat:-25.0050,maxLat:-24.9750,minLng:-53.5100,maxLng:-53.4800 },
+    'XIV de Novembro':{ type:'bbox',minLat:-25.0050,maxLat:-24.9750,minLng:-53.5100,maxLng:-53.4800 },
   };
   const n = nome.trim().split(' ').map(p=>p.charAt(0).toUpperCase()+p.slice(1).toLowerCase()).join(' ');
   const nA = n.normalize('NFD').replace(/[̀-ͯ]/g,'');
@@ -598,7 +571,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   res.status(404).json({ erro:'Região não encontrada' });
 });
 
-const BAIRROS_CASCAVEL = ['Centro','Cancelli','Country','São Cristóvão','Pacaembu','Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho','Jardim União','Universitário','XIV de Novembro','14 de Novembro','Esmeralda','Parque Verde','Tropical','Recanto Tropical','Maria Luiza','Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz','Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade','Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira','Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda','Santo Inácio','Bairro São Cristóvão'];
+const BAIRROS_CASCAVEL = ['Centro','Cancelli','Country','São Cristóvão','Pacaembu','Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho','Jardim União','Universitário','XIV de Novembro','14 de Novembro','Esmeralda','Parque Verde','Tropical','Recanto Tropical','Maria Luiza','Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz','Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade','Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira','Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda','Santo Inácio','Bairro São Cristóvão','Independência','Barcelona','Riviera','Florais do Paraná','Jardim Mantovani','Claudete','Vila Militar','Jardim Veneza','FAG'];
 const CIDADES_PR = ['Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora','Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul','Formosa do Oeste','Ibema','Lindoeste','Santa Lúcia','Três Barras do Paraná'];
 
 r.get('/geo/autocomplete', autenticar, async (req, res) => {
@@ -636,11 +609,10 @@ r.get('/geo/autocomplete', autenticar, async (req, res) => {
 // ── PDF RECICLAGEM ────────────────────────────────────
 const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
 
-function cloudinaryUpload(fileBuffer, fileName) {
+function cloudinaryUpload(fileBuffer, fileName, folder = 'dipelnet/manuais') {
   return new Promise((resolve, reject) => {
     const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
     const timestamp  = Math.floor(Date.now() / 1000);
-    const folder     = 'dipelnet/manuais';
     const sigStr     = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
     const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
     const boundary   = '----CloudinaryBoundary' + Date.now();
