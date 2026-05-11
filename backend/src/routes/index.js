@@ -10,6 +10,40 @@ const crypto = require('crypto');
 
 const r = express.Router();
 
+// ── BAIRROS CASCAVEL (GeoJSON Oficial IBGE) ───────────
+let BAIRROS_GEOJSON = {};
+try {
+  const geoData = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/bairros_cascavel.geojson'), 'utf8'));
+  geoData.features.forEach(f => {
+    const nome = f.properties.NM_BAIRRO;
+    if (nome && f.geometry) {
+      BAIRROS_GEOJSON[nome] = f.geometry;
+      // aliases sem acento
+      const nSA = nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if (nSA !== nome) BAIRROS_GEOJSON[nSA] = f.geometry;
+    }
+  });
+  console.log('[GEO] Bairros carregados:', Object.keys(BAIRROS_GEOJSON).filter(k => !k.includes('normalized')).length);
+} catch(e) {
+  console.log('[GEO] GeoJSON não encontrado:', e.message);
+}
+
+function centerOf(geometry) {
+  try {
+    const coords = geometry.type === 'Polygon'
+      ? geometry.coordinates[0]
+      : geometry.type === 'MultiPolygon'
+        ? geometry.coordinates[0][0]
+        : [];
+    const lats = coords.map(c => c[1]);
+    const lngs = coords.map(c => c[0]);
+    return {
+      center_lat: lats.reduce((a,b)=>a+b,0)/lats.length,
+      center_lng: lngs.reduce((a,b)=>a+b,0)/lngs.length,
+    };
+  } catch { return {}; }
+}
+
 const temPermissao = (usuario, permissao) => {
   if (!usuario) return false;
   if (['admin','gestor'].includes(usuario.role)) return true;
@@ -474,8 +508,19 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   const { nome } = req.query;
   if (!nome) return res.status(400).json({ erro:'Nome obrigatório' });
   if (geoServerCache[nome]) return res.json(geoServerCache[nome]);
+
+  // ── Verifica GeoJSON oficial primeiro ────────────────
+  const nSA = nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const geom = BAIRROS_GEOJSON[nome] || BAIRROS_GEOJSON[nSA];
+  if (geom) {
+    const c = centerOf(geom);
+    const result = { geometry: geom, ...c, display_name: nome, source: 'geojson-ibge' };
+    geoServerCache[nome] = result;
+    return res.json(result);
+  }
+
   const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
-  function centerOf(geometry) {
+  function centerOfLocal(geometry) {
     try {
       const coords = geometry.type==='Polygon' ? geometry.coordinates[0] : geometry.coordinates[0][0];
       return { center_lat:coords.reduce((s,[,y])=>s+y,0)/coords.length, center_lng:coords.reduce((s,[x])=>s+x,0)/coords.length };
@@ -538,7 +583,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
         let geom = null;
         if (osmEntry.type==='way' && el.geometry) geom = { type:'Polygon', coordinates:[el.geometry.map(p=>[p.lon,p.lat])] };
         else geom = overpassToGeojson(r2.data.elements);
-        if (geom) { const c = centerOf(geom); const result = { geometry:geom,...c,display_name:nAcento,source:'osm-id' }; geoServerCache[nome]=result; return res.json(result); }
+        if (geom) { const c = centerOfLocal(geom); const result = { geometry:geom,...c,display_name:nAcento,source:'osm-id' }; geoServerCache[nome]=result; return res.json(result); }
       }
     } catch(e) { console.log(`[GEO OSM ID erro] ${e.message}`); }
   }
@@ -553,7 +598,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
         const lat=parseFloat(item.lat), lng=parseFloat(item.lon);
         if (filtro && !filtro(item,lat,lng)) continue;
         const geom=item.geojson;
-        if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) { const c=centerOf(geom); return { geometry:geom,...c,display_name:item.display_name }; }
+        if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) { const c=centerOfLocal(geom); return { geometry:geom,...c,display_name:item.display_name }; }
         return { geometry:null,center_lat:lat,center_lng:lng,display_name:item.display_name };
       }
     } catch(e) { console.log(`[GEO Nominatim erro] ${e.message}`); }
