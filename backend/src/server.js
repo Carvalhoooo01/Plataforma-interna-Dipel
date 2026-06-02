@@ -11,19 +11,19 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ── RATE LIMITING ─────────────────────────────────────
-// Bloqueia após 5 tentativas de login erradas por IP em 15 minutos
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 5,
-  skipSuccessfulRequests: true, // não conta logins bem-sucedidos
+  skipSuccessfulRequests: true,
   message: { erro: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Rate limit geral: 200 requisições por minuto por IP (proteção extra)
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 200,
@@ -34,18 +34,6 @@ const generalLimiter = rateLimit({
 
 app.use('/api', generalLimiter);
 app.use('/api/auth/login', loginLimiter);
-
-// Pula express.json() para rotas de upload de contrato (raw binary)
-app.use((req, res, next) => {
-  const isContratoUpload = req.method === 'POST' && req.path.includes('/contrato');
-  if (isContratoUpload) return next();
-  express.json()(req, res, next);
-});
-app.use((req, res, next) => {
-  const isContratoUpload = req.method === 'POST' && req.path.includes('/contrato');
-  if (isContratoUpload) return next();
-  express.urlencoded({ extended: true })(req, res, next);
-});
 
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, _res, next) => { console.log(`[${req.method}] ${req.path}`); next(); });
