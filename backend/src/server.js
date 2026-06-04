@@ -4,6 +4,8 @@ const cors      = require('cors');
 const rateLimit = require('express-rate-limit');
 const app       = express();
 
+app.set('trust proxy', 1);  // ← ADICIONA AQUI
+
 const allowedOrigins = [
   'http://localhost:5173',
   'https://plataforma-interna-dipel.vercel.app',
@@ -11,6 +13,7 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));
+// ... resto igual
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
