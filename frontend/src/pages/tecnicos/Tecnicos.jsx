@@ -186,7 +186,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <a href={contratoUrl} download="contrato.pdf"
+          <a href={`${apiInstance.defaults.baseURL}/${tipo}/${id}/contrato-download`}
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             📎 Baixar contrato
           </a>
@@ -304,8 +304,7 @@ export default function Tecnicos() {
                   <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:500, background:sbg, color:sco, marginTop:5 }}>{t.status}</span>
                   {t.contrato_url && (
                     <a
-                      href={t.contrato_url + '?fl_attachment'}
-                      download="contrato.pdf"
+                      href={`${api.defaults.baseURL}/tecnicos/${t.id}/contrato-download`}
                       style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'none' }}
                       onClick={e => e.stopPropagation()}
                     >

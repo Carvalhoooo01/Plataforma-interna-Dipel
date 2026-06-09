@@ -215,7 +215,7 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
-// ── CONTRATO TÉCNICO (Cloudinary) ─────────────────────
+// ── CONTRATO TÉCNICO (POST - Upload) ──────────────────
 r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
@@ -431,7 +431,7 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
-// ── CONTRATO COLABORADOR (Cloudinary) ─────────────────
+// ── CONTRATO COLABORADOR (POST - Upload) ─────────────
 r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
@@ -476,7 +476,7 @@ function httpsGet(url, headers = {}, timeoutMs = 8000) {
       r2.on('data', c => body += c);
       r2.on('end', () => {
         try { resolve({ status: r2.statusCode, data: JSON.parse(body) }); }
-        catch { resolve({ status: r2.statusCode, data: null }); }
+        catch { resolve({ status: r2.statusCode, data: body }); }
       });
     });
     req2.on('error', reject);
@@ -509,7 +509,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
   if (!nome) return res.status(400).json({ erro:'Nome obrigatório' });
   if (geoServerCache[nome]) return res.json(geoServerCache[nome]);
 
-  // ── Verifica GeoJSON oficial primeiro ────────────────
   const nSA = nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const geom = BAIRROS_GEOJSON[nome] || BAIRROS_GEOJSON[nSA];
   if (geom) {
@@ -527,7 +526,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     } catch { return {}; }
   }
   const OSM_IDS = {
-    // ── Relations OSM ─────────────────────────────────
     'Floresta':{ id:6727084,type:'relation' },'Periolo':{ id:6727073,type:'relation' },'Morumbi':{ id:6727086,type:'relation' },
     'Brasília':{ id:6727085,type:'relation' },'Interlagos':{ id:6727083,type:'relation' },'Cascavel Velho':{ id:6727076,type:'relation' },
     'Cataratas':{ id:6727074,type:'relation' },'Região do Lago':{ id:6727067,type:'relation' },'Região do lago':{ id:6727067,type:'relation' },
@@ -538,11 +536,9 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Coqueiral':{ id:6727058,type:'relation' },'Canadá':{ id:6727081,type:'relation' },'Canada':{ id:6727081,type:'relation' },
     'Recanto Tropical':{ id:6727079,type:'relation' },'Tropical':{ id:6727079,type:'relation' },
     'Independência':{ id:11998962,type:'relation' },'Independencia':{ id:11998962,type:'relation' },
-    // ── Ways OSM ──────────────────────────────────────
     'Alto Alegre':{ id:454903448,type:'way' },'Parque São Paulo':{ id:454903443,type:'way' },'Parque Sao Paulo':{ id:454903443,type:'way' },
     'Santa Cruz':{ id:454903447,type:'way' },'Universitário':{ id:454903444,type:'way' },'Universitario':{ id:454903444,type:'way' },
     'Pioneiros Catarinenses':{ id:454903437,type:'way' },'Guarujá':{ id:454903439,type:'way' },'Guaruja':{ id:454903439,type:'way' },
-    // ── BBox ─────────────────────────────────────────
     'Brasmadeira':    { type:'bbox',minLat:-24.9353,maxLat:-24.9093,minLng:-53.4603,maxLng:-53.4343 },
     'Santo Onofre':   { type:'bbox',minLat:-24.9858,maxLat:-24.9558,minLng:-53.5123,maxLng:-53.4823 },
     'Centro':         { type:'bbox',minLat:-24.9800,maxLat:-24.9300,minLng:-53.4893,maxLng:-53.4393 },
@@ -554,7 +550,6 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
     'Jardim Mantovani':{ type:'bbox',minLat:-24.9200,maxLat:-24.8900,minLng:-53.3950,maxLng:-53.3650 },
     'Claudete':       { type:'bbox',minLat:-24.9550,maxLat:-24.9250,minLng:-53.5250,maxLng:-53.4950 },
     'Vila Militar':   { type:'bbox',minLat:-24.9850,maxLat:-24.9550,minLng:-53.4650,maxLng:-53.4350 },
-    'Jardim Veneza':  { type:'bbox',minLat:-24.9950,maxLat:-24.9650,minLng:-53.4350,maxLng:-53.4050 },
     'Jardim Veneza':  { type:'bbox',minLat:-24.9950,maxLat:-24.9650,minLng:-53.4350,maxLng:-53.4050 },
     'FAG':            { type:'bbox',minLat:-24.9850,maxLat:-24.9600,minLng:-53.5000,maxLng:-53.4700 },
     'Fag':            { type:'bbox',minLat:-24.9850,maxLat:-24.9600,minLng:-53.5000,maxLng:-53.4700 },
@@ -620,27 +615,59 @@ const BAIRROS_CASCAVEL = ['Centro','Cancelli','Country','São Cristóvão','Paca
 const CIDADES_PR = ['Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora','Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul','Formosa do Oeste','Ibema','Lindoeste','Santa Lúcia','Três Barras do Paraná'];
 
 // ── CONTRATO TÉCNICO E COLABORADOR (Cloudinary) ──────────
-   r.put('/tecnicos/:id/contrato-url', autenticar, async (req, res) => {
-     if (!temPermissao(req.usuario, 'editar_tecnicos'))
-       return res.status(403).json({ erro: 'Acesso negado' });
-     try {
-       const { url } = req.body;
-       if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
-       await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
-       res.json({ ok: true, url });
-     } catch(e) { res.status(500).json({ erro: e.message }); }
-   });
+r.put('/tecnicos/:id/contrato-url', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+    await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+    res.json({ ok: true, url });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
 
-   r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
-     if (!temPermissao(req.usuario, 'editar_colaboradores'))
-       return res.status(403).json({ erro: 'Acesso negado' });
-     try {
-       const { url } = req.body;
-       if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
-       await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
-       res.json({ ok: true, url });
-     } catch(e) { res.status(500).json({ erro: e.message }); }
-   });
+r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+    await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+    res.json({ ok: true, url });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
 
-   module.exports = r;
+// ── DOWNLOAD CONTRATO (via Backend Proxy) ───────────
+r.get('/tecnicos/:id/contrato-download', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT contrato_url FROM tecnicos WHERE id=$1', [req.params.id]);
+    if (!rows.length || !rows[0].contrato_url) return res.status(404).json({ erro: 'Contrato não encontrado' });
+    
+    const url = rows[0].contrato_url;
+    const response = await httpsGet(url, { 'User-Agent': 'Dipelnet/1.0' }, 15000);
+    
+    if (response.status !== 200) return res.status(response.status).json({ erro: 'Erro ao baixar contrato' });
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="contrato.pdf"');
+    res.send(response.data);
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
 
+r.get('/colaboradores/:id/contrato-download', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT contrato_url FROM colaboradores WHERE id=$1', [req.params.id]);
+    if (!rows.length || !rows[0].contrato_url) return res.status(404).json({ erro: 'Contrato não encontrado' });
+    
+    const url = rows[0].contrato_url;
+    const response = await httpsGet(url, { 'User-Agent': 'Dipelnet/1.0' }, 15000);
+    
+    if (response.status !== 200) return res.status(response.status).json({ erro: 'Erro ao baixar contrato' });
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="contrato.pdf"');
+    res.send(response.data);
+  } catch (e) { res.status(500).json({ erro: e.message }); }
+});
+
+module.exports = r;
