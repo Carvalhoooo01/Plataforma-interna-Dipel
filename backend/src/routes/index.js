@@ -18,15 +18,11 @@ try {
     const nome = f.properties.NM_BAIRRO;
     if (nome && f.geometry) {
       BAIRROS_GEOJSON[nome] = f.geometry;
-      // aliases sem acento
       const nSA = nome.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if (nSA !== nome) BAIRROS_GEOJSON[nSA] = f.geometry;
     }
   });
-  console.log('[GEO] Bairros carregados:', Object.keys(BAIRROS_GEOJSON).filter(k => !k.includes('normalized')).length);
-} catch(e) {
-  console.log('[GEO] GeoJSON não encontrado:', e.message);
-}
+} catch(e) { }
 
 function centerOf(geometry) {
   try {
@@ -50,10 +46,6 @@ const temPermissao = (usuario, permissao) => {
   const perms = usuario.permissoes || {};
   return perms[permissao] === true;
 };
-
-// ── CLOUDINARY HELPERS ────────────────────────────────
-const CLOUD_NAME = 'dinfzopjh';
-const API_KEY    = '754394543815596';
 
 // ── AUTH ─────────────────────────────────────────────
 r.post('/auth/login', async (req, res) => {
@@ -215,7 +207,6 @@ r.delete('/tecnicos/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao desativar' }); }
 });
 
-// ── CONTRATO TÉCNICO (POST - Upload) ──────────────────
 r.post('/tecnicos/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_tecnicos'))
     return res.status(403).json({ erro: 'Acesso negado' });
@@ -431,7 +422,6 @@ r.delete('/colaboradores/:id', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao remover colaborador' }); }
 });
 
-// ── CONTRATO COLABORADOR (POST - Upload) ─────────────
 r.post('/colaboradores/:id/contrato', autenticar, async (req, res) => {
   if (!temPermissao(req.usuario, 'editar_colaboradores'))
     return res.status(403).json({ erro: 'Acesso negado' });
@@ -580,7 +570,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
         else geom = overpassToGeojson(r2.data.elements);
         if (geom) { const c = centerOfLocal(geom); const result = { geometry:geom,...c,display_name:nAcento,source:'osm-id' }; geoServerCache[nome]=result; return res.json(result); }
       }
-    } catch(e) { console.log(`[GEO OSM ID erro] ${e.message}`); }
+    } catch(e) { }
   }
   const CASCAVEL = { lat:-24.9558, lng:-53.4548 };
   async function nominatim(query, filtro) {
@@ -596,7 +586,7 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
         if (geom && (geom.type==='Polygon'||geom.type==='MultiPolygon')) { const c=centerOfLocal(geom); return { geometry:geom,...c,display_name:item.display_name }; }
         return { geometry:null,center_lat:lat,center_lng:lng,display_name:item.display_name };
       }
-    } catch(e) { console.log(`[GEO Nominatim erro] ${e.message}`); }
+    } catch(e) { }
     return null;
   }
   const filtroBairro = (item,lat,lng) => { const dist=Math.sqrt(Math.pow(lat-CASCAVEL.lat,2)+Math.pow(lng-CASCAVEL.lng,2))*111; const ehCidade=['city','town','municipality'].includes(item.addresstype||item.type)&&!(item.display_name||'').toLowerCase().includes('cascavel'); return dist<=30&&!ehCidade; };
@@ -637,8 +627,7 @@ r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
-// ── DOWNLOAD CONTRATO (via Backend Proxy) ───────────
-// ── DOWNLOAD CONTRATO (via Backend Proxy) ───────────
+// ── DOWNLOAD CONTRATO (SEM AUTENTICAÇÃO) ─────────────
 r.get('/tecnicos/:id/contrato-download', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT contrato_url FROM tecnicos WHERE id=$1', [req.params.id]);
