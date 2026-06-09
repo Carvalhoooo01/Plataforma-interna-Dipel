@@ -183,10 +183,11 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
   const baixarContrato = async () => {
     setBaixando(true);
     try {
-      const response = await fetch(`${apiInstance.defaults.baseURL}/${tipo}/${id}/contrato-download`);
-      if (!response.ok) throw new Error('Erro ao baixar');
+      const response = await apiInstance.get(`/${tipo}/${id}/contrato-download`, {
+        responseType: 'blob'
+      });
       
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -196,7 +197,7 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Erro ao baixar: ' + e.message);
+      alert('Erro ao baixar: ' + (e.response?.data?.erro || e.message));
     } finally {
       setBaixando(false);
     }
@@ -301,10 +302,11 @@ export default function Tecnicos() {
 
   const baixarContratoDireto = async (tipo, id) => {
     try {
-      const response = await fetch(`${api.defaults.baseURL}/${tipo}/${id}/contrato-download`);
-      if (!response.ok) throw new Error('Erro ao baixar');
+      const response = await api.get(`/${tipo}/${id}/contrato-download`, {
+        responseType: 'blob'
+      });
       
-      const blob = await response.blob();
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -314,7 +316,7 @@ export default function Tecnicos() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Erro ao baixar: ' + e.message);
+      alert('Erro ao baixar: ' + (e.response?.data?.erro || e.message));
     }
   };
 
