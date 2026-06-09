@@ -638,7 +638,8 @@ r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
 });
 
 // ── DOWNLOAD CONTRATO (via Backend Proxy) ───────────
-r.get('/tecnicos/:id/contrato-download', autenticar, async (req, res) => {
+// ── DOWNLOAD CONTRATO (via Backend Proxy) ───────────
+r.get('/tecnicos/:id/contrato-download', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT contrato_url FROM tecnicos WHERE id=$1', [req.params.id]);
     if (!rows.length || !rows[0].contrato_url) return res.status(404).json({ erro: 'Contrato não encontrado' });
@@ -654,7 +655,7 @@ r.get('/tecnicos/:id/contrato-download', autenticar, async (req, res) => {
   } catch (e) { res.status(500).json({ erro: e.message }); }
 });
 
-r.get('/colaboradores/:id/contrato-download', autenticar, async (req, res) => {
+r.get('/colaboradores/:id/contrato-download', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT contrato_url FROM colaboradores WHERE id=$1', [req.params.id]);
     if (!rows.length || !rows[0].contrato_url) return res.status(404).json({ erro: 'Contrato não encontrado' });
