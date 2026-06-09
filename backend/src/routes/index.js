@@ -619,130 +619,28 @@ r.get('/geo/regiao', autenticar, async (req, res) => {
 const BAIRROS_CASCAVEL = ['Centro','Cancelli','Country','São Cristóvão','Pacaembu','Região do Lago','Periolo','Morumbi','Brasília','Cascavel Velho','Jardim União','Universitário','XIV de Novembro','14 de Novembro','Esmeralda','Parque Verde','Tropical','Recanto Tropical','Maria Luiza','Neva','Vila Tolentino','Parque São Paulo','Aracy','Santa Cruz','Santo Onofre','Alto Alegre','Palmeiras','Coqueiral','Santa Felicidade','Guarujá','Santos Dumont','Pioneiros Catarinenses','Canadá','Brasmadeira','Floresta','Interlagos','Cataratas','Aroeira','Fag','Vista Linda','Santo Inácio','Bairro São Cristóvão','Independência','Barcelona','Riviera','Florais do Paraná','Jardim Mantovani','Claudete','Vila Militar','Jardim Veneza','FAG'];
 const CIDADES_PR = ['Cafelândia','Corbélia','Guaraniaçu','Catanduvas','Nova Aurora','Boa Vista da Aparecida','Campo Bonito','Cascavel','Céu Azul','Formosa do Oeste','Ibema','Lindoeste','Santa Lúcia','Três Barras do Paraná'];
 
-r.get('/geo/autocomplete', autenticar, async (req, res) => {
-  const { q } = req.query;
-  if (!q || q.length < 2) return res.json([]);
-  const n = q.trim().toLowerCase();
-  const H = { 'User-Agent':'Dipelnet/1.0', 'Accept-Language':'pt-BR,pt' };
-  const semAcentos = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const nSA = semAcentos(n);
-  const bairrosMatch = BAIRROS_CASCAVEL.filter(b => semAcentos(b).includes(nSA)).map(b => ({ nome:b,display:`${b}, Cascavel - PR`,tipo:'Bairro · Cascavel' }));
-  const cidadesMatch = CIDADES_PR.filter(c => semAcentos(c).includes(nSA)).map(c => ({ nome:c,display:`${c}, Paraná`,tipo:'Cidade · PR' }));
-  const local = [...bairrosMatch,...cidadesMatch].slice(0,8);
-  if (local.length > 0) return res.json(local);
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+', Paraná')}&format=json&limit=8&addressdetails=1&countrycodes=br`;
-    const r2 = await httpsGet(url, H, 5000);
-    if (r2.status!==200||!r2.data?.length) return res.json([]);
-    const resultados = [];
-    for (const item of r2.data) {
-      const lat=parseFloat(item.lat),lng=parseFloat(item.lon);
-      if (!(lat>-27&&lat<-22&&lng>-55&&lng<-48)) continue;
-      const addresstype=item.addresstype||item.type||'';
-      const distCascavel=Math.sqrt(Math.pow(lat-(-24.9558),2)+Math.pow(lng-(-53.4548),2))*111;
-      const nomePrincipal=item.name||(item.display_name||'').split(',')[0].trim();
-      const display=(item.display_name||'').split(',').slice(0,2).join(',').trim();
-      let tipo=distCascavel<20?'Bairro · Cascavel':'Cidade · PR';
-      if (['city','town','municipality'].includes(addresstype)) tipo='Cidade · PR';
-      if (!resultados.find(r=>r.nome===nomePrincipal)) resultados.push({ nome:nomePrincipal,display,tipo,distCascavel:Math.round(distCascavel) });
-    }
-    resultados.sort((a,b)=>(a.tipo.includes('Cascavel')?0:1)-(b.tipo.includes('Cascavel')?0:1)||a.distCascavel-b.distCascavel);
-    res.json(resultados.slice(0,6));
-  } catch { res.json([]); }
-});
+// ── CONTRATO TÉCNICO E COLABORADOR (Cloudinary) ──────────
+   r.put('/tecnicos/:id/contrato-url', autenticar, async (req, res) => {
+     if (!temPermissao(req.usuario, 'editar_tecnicos'))
+       return res.status(403).json({ erro: 'Acesso negado' });
+     try {
+       const { url } = req.body;
+       if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+       await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+       res.json({ ok: true, url });
+     } catch(e) { res.status(500).json({ erro: e.message }); }
+   });
 
-// ── PDF RECICLAGEM ────────────────────────────────────
-const PDF_PATH = path.join(__dirname, '../../uploads/reciclagem.pdf');
+   r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
+     if (!temPermissao(req.usuario, 'editar_colaboradores'))
+       return res.status(403).json({ erro: 'Acesso negado' });
+     try {
+       const { url } = req.body;
+       if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+       await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+       res.json({ ok: true, url });
+     } catch(e) { res.status(500).json({ erro: e.message }); }
+   });
 
-function cloudinaryUpload(fileBuffer, fileName, folder = 'dipelnet/manuais') {
-  return new Promise((resolve, reject) => {
-    const API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
-    const timestamp  = Math.floor(Date.now() / 1000);
-    const sigStr     = `folder=${folder}&timestamp=${timestamp}${API_SECRET}`;
-    const signature  = crypto.createHash('sha1').update(sigStr).digest('hex');
-    const boundary   = '----CloudinaryBoundary' + Date.now();
-    const parts = [];
-    const addField = (name, value) => parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="${name}"\n\n${value}\n`));
-    addField('api_key', API_KEY); addField('timestamp', timestamp); addField('signature', signature); addField('folder', folder); addField('resource_type', 'raw');
-    parts.push(Buffer.from(`--${boundary}\nContent-Disposition: form-data; name="file"; filename="${fileName}"\nContent-Type: application/pdf\n\n`));
-    parts.push(fileBuffer); parts.push(Buffer.from(`\n--${boundary}--\n`));
-    const body = Buffer.concat(parts);
-    const options = { hostname:'api.cloudinary.com', path:`/v1_1/${CLOUD_NAME}/raw/upload`, method:'POST', headers:{ 'Content-Type':`multipart/form-data; boundary=${boundary}`,'Content-Length':body.length } };
-    const req = https2.request(options, (res) => {
-      let data = '';
-      res.on('data', c => data += c);
-      res.on('end', () => { try { const json=JSON.parse(data); if (json.secure_url) resolve(json.secure_url); else reject(new Error(json.error?.message||'Upload falhou')); } catch { reject(new Error('Resposta inválida')); } });
-    });
-    req.on('error', reject); req.write(body); req.end();
-  });
-}
+   module.exports = r;
 
-r.get('/config/reciclagem-pdf', autenticar, async (req, res) => {
-  try { const { rows } = await pool.query("SELECT valor FROM configuracoes WHERE chave='reciclagem_pdf_url' LIMIT 1"); res.json({ url: rows[0]?.valor||null }); }
-  catch { res.json({ url: null }); }
-});
-
-r.post('/config/reciclagem-pdf', autenticar, autorizar('admin','gestor'), async (req, res) => {
-  try { const { url } = req.body; await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`, [url]); res.json({ ok: true }); }
-  catch { res.status(500).json({ erro: 'Erro ao salvar URL' }); }
-});
-
-r.get('/config/reciclagem-pdf-proxy', (req, res) => {
-  if (!fs.existsSync(PDF_PATH)) return res.status(404).send('PDF não encontrado.');
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'inline; filename="Reciclagem.pdf"');
-  res.setHeader('Cache-Control', 'public, max-age=3600');
-  fs.createReadStream(PDF_PATH).pipe(res);
-});
-
-r.delete('/config/reciclagem-remover', autenticar, autorizar('admin','gestor'), (req, res) => {
-  try { if (fs.existsSync(PDF_PATH)) fs.unlinkSync(PDF_PATH); res.json({ ok: true }); }
-  catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.post('/config/reciclagem-upload-local', autenticar, autorizar('admin','gestor'), (req, res) => {
-  const uploadsDir = path.join(__dirname, '../../uploads');
-  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-  const chunks = [];
-  req.on('data', c => chunks.push(c));
-  req.on('end', () => { const buffer=Buffer.concat(chunks); fs.writeFileSync(PDF_PATH, buffer); res.json({ ok:true, size:buffer.length }); });
-  req.on('error', e => res.status(500).json({ erro: e.message }));
-});
-
-r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), async (req, res) => {
-  try {
-    const chunks = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', async () => {
-      try { const buffer=Buffer.concat(chunks); const fileName=req.headers['x-filename']||'manual.pdf'; const url=await cloudinaryUpload(buffer,fileName); await pool.query(`INSERT INTO configuracoes (chave, valor) VALUES ('reciclagem_pdf_url', $1) ON CONFLICT (chave) DO UPDATE SET valor = $1`,[url]); res.json({ url }); }
-      catch(e) { res.status(500).json({ erro: e.message }); }
-    });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-// ── ADICIONAR ISSO NO BACKEND (index.js) ─────────────────
-
-// Salvar URL de contrato (enviada do Cloudinary)
-r.put('/tecnicos/:id/contrato-url', autenticar, async (req, res) => {
-  if (!temPermissao(req.usuario, 'editar_tecnicos'))
-    return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const { url } = req.body;
-    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
-    await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
-    res.json({ ok: true, url });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
-  if (!temPermissao(req.usuario, 'editar_colaboradores'))
-    return res.status(403).json({ erro: 'Acesso negado' });
-  try {
-    const { url } = req.body;
-    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
-    await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
-    res.json({ ok: true, url });
-  } catch(e) { res.status(500).json({ erro: e.message }); }
-});
-
-module.exports = r;
