@@ -295,22 +295,28 @@ export default function Guias() {
   }, [verChecklist]);
 
   const abrirGuia = async (g) => {
-    setAtual(g);
-    const local = CONTEUDO_LOCAL[g.slug];
-    const base  = JSON.parse(JSON.stringify(local || {}));
-    try {
-      const { data } = await api.get(`/guias/${g.slug}`);
-      if (data.conteudo?.steps?.length && local) {
+  setAtual(g);
+  const local = CONTEUDO_LOCAL[g.slug];
+  let base  = JSON.parse(JSON.stringify(local || {}));
+  try {
+    const { data } = await api.get(`/guias/${g.slug}`);
+    if (data.conteudo?.steps?.length) {
+      if (local) {
+        // Tem local: faz merge com banco
         base.steps = base.steps.map((localStep, si) => {
           const apiStep = data.conteudo.steps[si] || {};
           const imgsDB  = Array.isArray(apiStep.imgs) && apiStep.imgs.some(u => u) ? apiStep.imgs : localStep.imgs;
           return { ...localStep, imgs: imgsDB };
         });
+      } else {
+        // NÃO tem local: usa direto do banco
+        base = data.conteudo;
       }
-    } catch {}
-    setCont(base);
-    window.scrollTo(0, 0);
-  };
+    }
+  } catch {}
+  setCont(base);
+  window.scrollTo(0, 0);
+};
 
   const uploadGuia = (stepIdx, imgIdx) => {
     if (!CLOUD_NAME) { alert('Configure VITE_CLOUDINARY_CLOUD_NAME'); return; }
