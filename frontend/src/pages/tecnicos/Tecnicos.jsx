@@ -186,9 +186,9 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <a href={contratoUrl?.startsWith('http') ? contratoUrl : `${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
+          <a href={contratoUrl} download="contrato.pdf"
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            📎 Ver contrato
+            📎 Baixar contrato
           </a>
           <button onClick={uploadContrato} disabled={uploading}
             style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'1px solid #d1d5db', background:'#fff', cursor:'pointer', color:'#374151' }}>
@@ -304,8 +304,8 @@ export default function Tecnicos() {
                   <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:500, background:sbg, color:sco, marginTop:5 }}>{t.status}</span>
                   {t.contrato_url && (
                     <a
-                      href={t.contrato_url?.startsWith('http') ? t.contrato_url : `${api.defaults.baseURL?.replace(/\/api$/, '')}${t.contrato_url}`}
-                      target="_blank" rel="noreferrer"
+                      href={t.contrato_url}
+                      download="contrato.pdf"
                       style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'none' }}
                       onClick={e => e.stopPropagation()}
                     >
