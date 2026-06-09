@@ -720,4 +720,29 @@ r.post('/config/reciclagem-upload', autenticar, autorizar('admin','gestor'), asy
   } catch(e) { res.status(500).json({ erro: e.message }); }
 });
 
+// ── ADICIONAR ISSO NO BACKEND (index.js) ─────────────────
+
+// Salvar URL de contrato (enviada do Cloudinary)
+r.put('/tecnicos/:id/contrato-url', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_tecnicos'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+    await pool.query('UPDATE tecnicos SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+    res.json({ ok: true, url });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
+r.put('/colaboradores/:id/contrato-url', autenticar, async (req, res) => {
+  if (!temPermissao(req.usuario, 'editar_colaboradores'))
+    return res.status(403).json({ erro: 'Acesso negado' });
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ erro: 'URL obrigatória' });
+    await pool.query('UPDATE colaboradores SET contrato_url=$1 WHERE id=$2', [url, req.params.id]);
+    res.json({ ok: true, url });
+  } catch(e) { res.status(500).json({ erro: e.message }); }
+});
+
 module.exports = r;

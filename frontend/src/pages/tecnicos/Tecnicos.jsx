@@ -5,6 +5,8 @@ import { useDark } from '../../contexts/ThemeContext';
 import { tk } from '../../utils/theme';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY;
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const PRESET = import.meta.env.VITE_CLOUDINARY_PRESET;
 const AV_CLS   = [['#e8f0fe','#1e40af'],['#d1fae5','#065f46'],['#fef3c7','#92400e'],['#ede9fe','#5b21b6']];
 const ST_BADGE = { 'Disponível':['#d1fae5','#065f46'], 'Em campo':['#fef3c7','#92400e'], 'Folga':['#f3f4f6','#374151'] };
 const ini = n => (n||'').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -134,20 +136,37 @@ function RegiaoInput({ valor, onChange, dark }) {
 function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
   const [uploading, setUploading] = useState(false);
   const [removendo, setRemovendo] = useState(false);
-  const inputRef = useRef(null);
 
-  const uploadContrato = async (file) => {
+  const uploadContrato = () => {
+    if (!CLOUD_NAME) { alert('Configure VITE_CLOUDINARY_CLOUD_NAME'); return; }
+    if (!PRESET) { alert('Configure VITE_CLOUDINARY_PRESET'); return; }
+    if (typeof cloudinary === 'undefined') { alert('Widget Cloudinary não carregado.'); return; }
+    
     setUploading(true);
-    try {
-      const buffer = await file.arrayBuffer();
-      const { data } = await apiInstance.post(`/${tipo}/${id}/contrato`, buffer, {
-        headers: { 'x-filename': file.name, 'Content-Type': 'application/octet-stream' },
-        transformRequest: [(d) => d],
-      });
-      if (data.ok) onAtualizar(data.url);
-      else alert('Erro ao enviar contrato');
-    } catch (e) { alert('Erro ao enviar contrato: ' + (e.response?.data?.erro || e.message)); }
-    finally { setUploading(false); }
+    cloudinary.createUploadWidget({
+      cloudName: CLOUD_NAME,
+      uploadPreset: PRESET,
+      sources: ['local'],
+      multiple: false,
+      maxFileSize: 10000000,
+      resourceType: 'auto',
+      folder: `dipelnet/contratos`,
+    }, async (err, res) => {
+      if (!res || res.event !== 'success') { 
+        setUploading(false);
+        return; 
+      }
+      try {
+        const url = res.info.secure_url;
+        await apiInstance.put(`/${tipo}/${id}/contrato-url`, { url });
+        onAtualizar(url);
+      } catch (e) { 
+        alert('Erro ao salvar: ' + (e.response?.data?.erro || e.message)); 
+      }
+      finally { 
+        setUploading(false); 
+      }
+    }).open();
   };
 
   const removerContrato = async () => {
@@ -167,12 +186,11 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {/* URL direta do Cloudinary — sem manipulação de baseURL */}
           <a href={contratoUrl?.startsWith('http') ? contratoUrl : `${apiInstance.defaults.baseURL?.replace(/\/api$/, '')}${contratoUrl}`} target="_blank" rel="noreferrer"
             style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             📎 Ver contrato
           </a>
-          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+          <button onClick={uploadContrato} disabled={uploading}
             style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'1px solid #d1d5db', background:'#fff', cursor:'pointer', color:'#374151' }}>
             Trocar
           </button>
@@ -182,13 +200,11 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
           </button>
         </div>
       ) : (
-        <button onClick={() => inputRef.current?.click()} disabled={uploading}
+        <button onClick={uploadContrato} disabled={uploading}
           style={{ width:'100%', fontSize:12, padding:'8px', borderRadius:6, border:'1px dashed #d1d5db', background:'transparent', cursor:'pointer', color:'#6b7280', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
           {uploading ? 'Enviando...' : '⬆ Enviar contrato (PDF, DOCX, PNG, etc.)'}
         </button>
       )}
-      <input ref={inputRef} type="file" style={{ display:'none' }}
-        onChange={e => e.target.files?.[0] && uploadContrato(e.target.files[0])}/>
     </div>
   );
 }
