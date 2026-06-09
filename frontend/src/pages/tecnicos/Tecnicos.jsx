@@ -304,7 +304,7 @@ export default function Tecnicos() {
                   <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:500, background:sbg, color:sco, marginTop:5 }}>{t.status}</span>
                   {t.contrato_url && (
                     <a
-                      href={t.contrato_url}
+                      href={t.contrato_url + '?fl_attachment'}
                       download="contrato.pdf"
                       style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'none' }}
                       onClick={e => e.stopPropagation()}
