@@ -136,6 +136,7 @@ function RegiaoInput({ valor, onChange, dark }) {
 function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
   const [uploading, setUploading] = useState(false);
   const [removendo, setRemovendo] = useState(false);
+  const [baixando, setBaixando] = useState(false);
 
   const uploadContrato = () => {
     if (!CLOUD_NAME) { alert('Configure VITE_CLOUDINARY_CLOUD_NAME'); return; }
@@ -179,6 +180,28 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
     finally { setRemovendo(false); }
   };
 
+  const baixarContrato = async () => {
+    setBaixando(true);
+    try {
+      const response = await fetch(`${apiInstance.defaults.baseURL}/${tipo}/${id}/contrato-download`);
+      if (!response.ok) throw new Error('Erro ao baixar');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'contrato.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Erro ao baixar: ' + e.message);
+    } finally {
+      setBaixando(false);
+    }
+  };
+
   return (
     <div style={{ border:`1px solid #e5e7eb`, borderRadius:8, padding:12, background:'#f9fafb', marginTop:4 }}>
       <div style={{ fontSize:11, fontWeight:600, color:'#6b7280', marginBottom:8, textTransform:'uppercase', letterSpacing:.4 }}>
@@ -186,10 +209,10 @@ function ContratoSection({ tipo, id, contratoUrl, onAtualizar, apiInstance }) {
       </div>
       {contratoUrl ? (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <a href={`${apiInstance.defaults.baseURL}/${tipo}/${id}/contrato-download`}
-            style={{ flex:1, fontSize:12, color:'#2563eb', textDecoration:'none', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            📎 Baixar contrato
-          </a>
+          <button onClick={baixarContrato} disabled={baixando}
+            style={{ flex:1, fontSize:12, color:'#2563eb', background:'none', border:'none', textDecoration:'underline', textAlign:'left', cursor:'pointer', padding:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {baixando ? '⏳ Baixando...' : '📎 Baixar contrato'}
+          </button>
           <button onClick={uploadContrato} disabled={uploading}
             style={{ fontSize:11, padding:'3px 8px', borderRadius:6, border:'1px solid #d1d5db', background:'#fff', cursor:'pointer', color:'#374151' }}>
             Trocar
@@ -276,6 +299,25 @@ export default function Tecnicos() {
     window.open(`https://wa.me/${fone}`, '_blank');
   };
 
+  const baixarContratoDireto = async (tipo, id) => {
+    try {
+      const response = await fetch(`${api.defaults.baseURL}/${tipo}/${id}/contrato-download`);
+      if (!response.ok) throw new Error('Erro ao baixar');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'contrato.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Erro ao baixar: ' + e.message);
+    }
+  };
+
   const inp = { width:'100%', padding:'8px 11px', border:`1px solid ${c.inputBorder}`, borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box', background:c.inputBg, color:c.text };
   const lbl = { display:'block', fontSize:11, fontWeight:600, color:c.textSub, marginBottom:5, textTransform:'uppercase', letterSpacing:.4 };
 
@@ -303,14 +345,13 @@ export default function Tecnicos() {
                   <div style={{ fontSize:11, color:c.textMuted }}>{t.codigo}</div>
                   <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:500, background:sbg, color:sco, marginTop:5 }}>{t.status}</span>
                   {t.contrato_url && (
-                    <a
-                      href={`${api.defaults.baseURL}/tecnicos/${t.id}/contrato-download`}
-                      style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'none' }}
-                      onClick={e => e.stopPropagation()}
+                    <button
+                      onClick={() => baixarContratoDireto('tecnicos', t.id)}
+                      style={{ background:'none', border:'none', display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#2563eb', marginTop:4, textDecoration:'underline', cursor:'pointer', padding:0 }}
                     >
                       <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                       Contrato
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>
