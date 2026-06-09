@@ -301,24 +301,28 @@ export default function Tecnicos() {
   };
 
   const baixarContratoDireto = async (tipo, id) => {
-    try {
-      const response = await api.get(`/${tipo}/${id}/contrato-download`, {
-        responseType: 'blob'
-      });
-      
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'contrato.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('Erro ao baixar: ' + (e.response?.data?.erro || e.message));
+  try {
+    // Busca a URL do banco via API
+    const endpoint = tipo === 'tecnicos' ? `/tecnicos/${id}` : `/colaboradores/${id}`;
+    const response = await api.get(endpoint);
+    const contratoUrl = response.data.contrato_url;
+    
+    if (!contratoUrl) {
+      alert('Contrato não encontrado');
+      return;
     }
-  };
+
+    // Baixa direto do Cloudinary
+    const link = document.createElement('a');
+    link.href = contratoUrl;
+    link.download = 'contrato.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (e) {
+    alert('Erro ao baixar: ' + (e.response?.data?.erro || e.message));
+  }
+};
 
   const inp = { width:'100%', padding:'8px 11px', border:`1px solid ${c.inputBorder}`, borderRadius:8, fontSize:13, outline:'none', boxSizing:'border-box', background:c.inputBg, color:c.text };
   const lbl = { display:'block', fontSize:11, fontWeight:600, color:c.textSub, marginBottom:5, textTransform:'uppercase', letterSpacing:.4 };
