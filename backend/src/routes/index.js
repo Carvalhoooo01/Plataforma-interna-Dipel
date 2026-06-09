@@ -158,6 +158,14 @@ r.get('/tecnicos', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao listar técnicos' }); }
 });
 
+r.get('/tecnicos/:id', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM tecnicos WHERE id=$1 AND ativo=TRUE', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ erro: 'Técnico não encontrado' });
+    res.json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao buscar técnico' }); }
+});
+
 r.post('/tecnicos', autenticar, autorizar('admin', 'gestor'), async (req, res) => {
   try {
     const { nome, codigo, telefone, regioes, status, lat, lng, setor_id } = req.body;
@@ -383,6 +391,14 @@ r.get('/colaboradores', autenticar, async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM colaboradores ORDER BY setor, ordem, nome');
     res.json(rows);
   } catch { res.status(500).json({ erro: 'Erro ao listar colaboradores' }); }
+});
+
+r.get('/colaboradores/:id', autenticar, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM colaboradores WHERE id=$1', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ erro: 'Colaborador não encontrado' });
+    res.json(rows[0]);
+  } catch { res.status(500).json({ erro: 'Erro ao buscar colaborador' }); }
 });
 
 r.post('/colaboradores', autenticar, async (req, res) => {
