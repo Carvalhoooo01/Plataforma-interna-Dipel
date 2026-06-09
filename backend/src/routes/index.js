@@ -293,7 +293,7 @@ r.get('/guias', autenticar, async (req, res) => {
   } catch { res.status(500).json({ erro: 'Erro ao listar guias' }); }
 });
 
-r.get('/guias/:slug', autenticar, async (req, res) => {
+r.get('/guias/:slug', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM guias WHERE slug=$1', [req.params.slug]);
     if (!rows.length) return res.status(404).json({ erro: 'Guia não encontrado' });
